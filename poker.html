@@ -116,6 +116,13 @@ button:active:not(:disabled){transform:translateY(1px) scale(.98)}
 .board{display:flex;gap:6px;--cw:min(14.5vw,56px);perspective:600px}
 .pot{display:flex;align-items:center;font-family:var(--f-lux);font-weight:700;font-size:1.25rem;background:rgba(0,0,0,.32);border:1px solid rgba(246,228,166,.25);border-radius:999px;padding:3px 16px 3px 10px;color:var(--gold-hi);box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
 .pot span{font-family:var(--f-body);font-size:.66rem;color:var(--muted);margin-right:6px;font-weight:500;letter-spacing:.08em}
+.pots{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 5px;width:100%;padding:0 14px}
+.potpill{display:inline-flex;align-items:baseline;gap:4px;font-family:var(--f-num);font-size:.76rem;color:var(--ink);background:rgba(0,0,0,.35);border:1px solid rgba(246,228,166,.2);border-radius:999px;padding:1px 9px}
+.potpill em{font-style:normal;font-family:var(--f-body);font-size:.64rem;color:var(--muted)}
+.potpill small{font-size:.62rem;color:var(--muted)}
+.potpill.main{border-color:var(--gold)}
+.potpill.main em{color:var(--gold)}
+.results .plabel{color:var(--muted);font-size:.82rem}
 .say{font-size:.78rem;color:var(--ink);min-height:1.3em;text-align:center;opacity:.92;text-shadow:0 1px 2px rgba(0,0,0,.6)}
 .say.flash{animation:say .45s ease-out}
 @keyframes say{from{transform:translateY(5px);opacity:0}to{transform:none;opacity:.92}}
@@ -788,9 +795,10 @@ const localHumans=()=>G.players.filter(p=>p.kind==='local');
 function nextIdx(from,pred){const n=G.players.length;for(let k=1;k<=n;k++){const i=((from+k)%n+n)%n;if(pred(G.players[i]))return i}return -1}
 function log(text,kind=''){G.log.push({text,kind});if(G.log.length>200)G.log.shift()}
 const cardsTxt=cs=>cs.map(c=>RL(c.r)+SUIT[c.s]).join(' ');
-const mkPlayer=(q,i,chips)=>({id:i,pid:q.pid,name:q.name,kind:q.kind,chips,hand:[],bet:0,total:0,folded:false,allin:false,acted:false,out:false,kicked:false,lastAction:'',best:null,won:0,rebuys:0,lastRebuy:0});
+const mkPlayer=(q,i,chips,wait=false)=>({id:i,pid:q.pid,name:q.name,kind:q.kind,chips,hand:[],bet:0,total:0,folded:false,allin:false,acted:false,actedBet:null,out:false,kicked:false,
+  waitBB:wait,missedBB:false,shown:false,mucked:false,lastAction:'',best:null,won:0,rebuys:0,lastRebuy:0});
 function freshG(){return{players:[],pending:[],cfg:{...setupCfg},dealer:-1,sb:setupCfg.sb,bb:setupCfg.bb,every:setupCfg.every,handNo:0,board:[],deck:[],street:'',cur:-1,turnId:0,currentBet:0,minRaise:setupCfg.bb,
-  log:[],phase:'play',reveal:-1,showdown:false,winCards:new Set(),timer:null,say:'',sayN:0,sbI:-1,bbI:-1}}
+  log:[],phase:'play',reveal:-1,showdown:false,winCards:new Set(),timer:null,say:'',sayN:0,sbI:-1,bbI:-1,sbSeat:-1,lastAggr:-1,tabled:false,potResults:[]}}
 
 function startGame(list){
   G=freshG();
@@ -802,33 +810,84 @@ function changed(){render();publish()}
 function put(p,amt){amt=Math.min(amt,p.chips);p.chips-=amt;p.bet+=amt;p.total+=amt;if(p.chips===0)p.allin=true;return amt}
 function announce(t){G.say=t;G.sayN++}
 
+/* ブラインドとボタン（デッドボタン方式）
+   - 最初のハンドのボタンは抽選
+   - BBは毎ハンド必ず次の人へ1人ずつ進む（同じ人が続けてBBを払わない）
+   - SBは前のハンドのBBの席。その人が抜けていればSBはデッド（誰も払わない）
+   - ボタンは前のハンドのSBの席（空席ならデッドボタン）
+   - 2人になったらボタン＝SBで、BBの人はプリフロップ最後・フロップ以降は最初に行動
+   - BBを飛ばした人（途中参加・脱落中・退席中）はBBが回ってくるまで配られない */
+const eligible=p=>p.chips>0&&!p.kicked;
+function placeBlinds(){
+  const n=G.players.length;
+  if(G.bbI<0){
+    G.players.forEach(p=>{p.waitBB=false;p.missedBB=false});
+    const ds=G.players.filter(eligible);
+    const d=ds[Math.floor(Math.random()*ds.length)].id;
+    G.dealer=d;
+    if(ds.length===2){G.sbI=d;G.bbI=nextIdx(d,eligible)}else{G.sbI=nextIdx(d,eligible);G.bbI=nextIdx(G.sbI,eligible)}
+    G.sbSeat=G.sbI;
+    log(`ボタンの抽選：${G.players[d].name}`,'sys');
+    return;
+  }
+  const prevBB=G.bbI,prevSB=G.sbSeat;
+  const nb=nextIdx(prevBB,eligible);
+  for(let k=1;k<n;k++){const idx=(prevBB+k)%n;if(idx===nb)break;const q=G.players[idx];if(!eligible(q))q.missedBB=true}
+  G.players.forEach(p=>{if(eligible(p)&&p.missedBB)p.waitBB=true});
+  const bp=G.players[nb];bp.waitBB=false;bp.missedBB=false;
+  let dealt=G.players.filter(p=>eligible(p)&&!p.waitBB);
+  if(dealt.length<2){G.players.forEach(p=>{if(eligible(p)){p.waitBB=false;p.missedBB=false}});dealt=G.players.filter(eligible)}
+  if(dealt.length===2){
+    const other=dealt.find(p=>p.id!==nb);
+    G.bbI=nb;G.dealer=G.sbI=G.sbSeat=other.id;
+    return;
+  }
+  G.bbI=nb;G.sbSeat=prevBB;
+  const sp=G.players[prevBB];
+  G.sbI=eligible(sp)&&!sp.waitBB&&prevBB!==nb?prevBB:-1;
+  G.dealer=prevSB>=0?prevSB:(prevBB-1+n)%n;
+  if(G.dealer===G.bbI||G.dealer===G.sbSeat)G.dealer=(G.sbSeat-1+n)%n;
+}
+
 function newHand(){
   clearTimeout(G.timer);
-  G.pending.splice(0).forEach(q=>{if(G.players.length<MAXP&&!G.players.some(p=>p.pid===q.pid)){G.players.push(mkPlayer(q,G.players.length,G.cfg.chips));log(`${q.name} が参加しました`,'sys')}});
+  G.pending.splice(0).forEach(q=>{
+    if(G.players.length<MAXP&&!G.players.some(p=>p.pid===q.pid)){
+      const wait=G.handNo>0;
+      G.players.push(mkPlayer(q,G.players.length,G.cfg.chips,wait));
+      log(`${q.name} が参加しました${wait?'（BBが回ってきたら配られます）':''}`,'sys');
+    }
+  });
   if(G.cfg.rebuy)G.players.forEach(p=>{if(p.kind==='cpu'&&p.chips<=0&&!p.kicked){p.chips=G.cfg.chips;p.rebuys++;log(`${p.name} がリバイしました`,'sys')}});
-  G.players.forEach(p=>{p.out=p.chips<=0||p.kicked;p.hand=[];p.bet=0;p.total=0;p.folded=p.out;p.allin=false;p.acted=false;p.lastAction=p.kicked?'退席':p.out?'脱落':'';p.best=null;p.won=0});
-  const alive=G.players.filter(p=>!p.out);
-  if(alive.length<2){G.phase='over';G.cur=-1;changed();return}
+  G.players.forEach(p=>{p.hand=[];p.bet=0;p.total=0;p.allin=false;p.acted=false;p.actedBet=null;p.best=null;p.won=0;p.shown=false;p.mucked=false});
+  if(G.players.filter(eligible).length<2){
+    G.players.forEach(p=>{p.out=true;p.folded=true});
+    G.phase='over';G.cur=-1;changed();return;
+  }
   G.handNo++;
   if(G.every&&G.handNo>1&&(G.handNo-1)%G.every===0){G.sb*=2;G.bb*=2;log(`ブラインドが ${fmt(G.sb)}/${fmt(G.bb)} に上がりました`,'sys')}
-  G.dealer=nextIdx(G.dealer,p=>!p.out);
-  G.deck=shuffle(newDeck());G.board=[];G.showdown=false;G.winCards=new Set();G.phase='play';G.reveal=-1;if(APP.sheet==="raise")APP.sheet=null;G.fresh=0;
+  placeBlinds();
+  G.players.forEach(p=>{p.out=!(eligible(p)&&!p.waitBB);p.folded=p.out;p.lastAction=p.kicked?'退席':p.chips<=0?'脱落':p.waitBB?'BB待ち':''});
+  const alive=G.players.filter(p=>!p.out);
+  G.deck=shuffle(newDeck());G.board=[];G.showdown=false;G.tabled=false;G.lastAggr=-1;G.potResults=[];G.winCards=new Set();G.phase='play';G.reveal=-1;if(APP.sheet==="raise")APP.sheet=null;G.fresh=0;
   for(let k=0;k<2;k++){let i=G.dealer;for(let n=0;n<alive.length;n++){i=nextIdx(i,p=>!p.out);G.players[i].hand.push(G.deck.pop())}}
-  let sbI,bbI;
-  if(alive.length===2){sbI=G.dealer;bbI=nextIdx(sbI,p=>!p.out)}else{sbI=nextIdx(G.dealer,p=>!p.out);bbI=nextIdx(sbI,p=>!p.out)}
-  G.sbI=sbI;G.bbI=bbI;
-  log(`ハンド #${G.handNo}（ディーラー: ${G.players[G.dealer].name}）`,'sys');
-  const s=put(G.players[sbI],G.sb),b=put(G.players[bbI],G.bb);
-  G.players[sbI].lastAction=`SB ${fmt(s)}`;G.players[bbI].lastAction=`BB ${fmt(b)}`;
-  log(`${G.players[sbI].name}: SB ${fmt(s)} / ${G.players[bbI].name}: BB ${fmt(b)}`);
+  const dp=G.players[G.dealer];
+  log(`ハンド #${G.handNo}（ボタン: ${dp.out?`${dp.name} の席・デッドボタン`:dp.name}）`,'sys');
+  const bbP=G.players[G.bbI];
+  if(G.sbI>=0){const sP=G.players[G.sbI];const s=put(sP,G.sb);sP.lastAction=`SB ${fmt(s)}`;log(`${sP.name}: SB ${fmt(s)}`)}
+  else log('SBはデッド（前のハンドのBBが抜けたため、このハンドはSBなし）','sys');
+  const b=put(bbP,G.bb);bbP.lastAction=`BB ${fmt(b)}`;log(`${bbP.name}: BB ${fmt(b)}`);
   announce(`ハンド #${G.handNo} · ブラインド ${fmt(G.sb)}/${fmt(G.bb)}`);
   G.currentBet=G.bb;G.minRaise=G.bb;G.street='preflop';
-  advance(bbI);
+  advance(G.bbI);
 }
 
 function advance(from){
   const live=G.players.filter(p=>!p.out&&!p.folded);
   if(live.length===1)return winByFold(live[0]);
+  const actors=G.players.filter(canAct);
+  // 行動できる人が1人以下で、その人の額もそろっていれば、このラウンドでやることはない
+  if(actors.length<=1&&actors.every(p=>p.bet>=G.currentBet))return endStreet();
   const nx=nextIdx(from,needs);
   if(nx===-1)return endStreet();
   G.cur=nx;turnStart();
@@ -848,18 +907,27 @@ function resumeTurn(){
   changed();G.timer=setTimeout(endStreet,1000);
 }
 
+/* 誰もコールしなかった分のベットは本人に返す */
 function returnUncalled(){
   const s=[...G.players].sort((a,b)=>b.bet-a.bet);
   const top=s[0],second=s[1]?s[1].bet:0;
-  if(top.bet>second){const d=top.bet-second;top.bet-=d;top.total-=d;top.chips+=d;if(top.chips>0)top.allin=false}
+  if(top.bet>second){const d=top.bet-second;top.bet-=d;top.total-=d;top.chips+=d;if(top.chips>0)top.allin=false;log(`${top.name} にコールされなかった ${fmt(d)} を返却`)}
 }
 
 function endStreet(){
   returnUncalled();
-  G.players.forEach(p=>{p.bet=0;p.acted=false});
+  G.players.forEach(p=>{p.bet=0;p.acted=false;p.actedBet=null});
   G.currentBet=0;G.minRaise=G.bb;G.cur=-1;
+  const live=G.players.filter(p=>!p.out&&!p.folded);
+  // オールインがいてベッティングが終わったら、残っている全員の手札を表向きにする
+  if(!G.tabled&&live.length>1&&G.players.filter(canAct).length<2){
+    G.tabled=true;
+    live.forEach(p=>log(`${p.name}: ${cardsTxt(p.hand)}（オープン）`));
+    log('オールインでベッティング終了。全員の手札をオープンします','sys');
+  }
   const next={preflop:'flop',flop:'turn',turn:'river',river:'showdown'}[G.street];
   if(next==='showdown')return showdown();
+  G.lastAggr=-1;
   G.street=next;G.deck.pop();
   const n=next==='flop'?3:1;const dealt=[];
   G.fresh=G.board.length;
@@ -867,54 +935,85 @@ function endStreet(){
   log(`${STREET_JP[next]}: ${cardsTxt(dealt)}`,'street');
   announce(`${STREET_JP[next]}: ${cardsTxt(dealt)}`);
   G.players.forEach(p=>{if(canAct(p))p.lastAction=''});
-  if(G.players.filter(canAct).length<2){G.reveal=-1;G.phase='play';changed();G.timer=setTimeout(endStreet,1100);return}
+  if(G.players.filter(canAct).length<2){G.reveal=-1;G.phase='play';changed();G.timer=setTimeout(endStreet,1300);return}
   advance(G.dealer);
 }
 
 function seatOrder(p){const n=G.players.length;return((p.id-G.dealer-1)%n+n)%n}
 
-function buildPots(){
+/* ポット：オールインした額ごとに区切る。最初がメインポット、上に積み上がった分がサイドポット。
+   フォールドした人が出したチップも、出した額に応じて各ポットに入る */
+function computePots(){
   const live=G.players.filter(p=>!p.out&&!p.folded);
-  const levels=[...new Set(live.map(p=>p.total))].sort((a,b)=>a-b);
+  const levels=[...new Set(live.filter(p=>p.allin).map(p=>p.total))].sort((a,b)=>a-b);
   const pots=[];let prev=0;
-  levels.forEach(lv=>{
+  for(const lv of levels){
     let amt=0;G.players.forEach(p=>{amt+=Math.max(0,Math.min(p.total,lv)-prev)});
     if(amt>0)pots.push({amount:amt,eligible:live.filter(p=>p.total>=lv)});
     prev=lv;
-  });
-  const extra=G.players.reduce((s,p)=>s+Math.max(0,p.total-prev),0);
-  if(extra&&pots.length)pots[pots.length-1].amount+=extra;
+  }
+  const rest=G.players.reduce((s,p)=>s+Math.max(0,p.total-prev),0);
+  const el=live.filter(p=>p.total>prev);
+  if(rest>0){if(el.length)pots.push({amount:rest,eligible:el});else if(pots.length)pots[pots.length-1].amount+=rest}
   return pots;
 }
+const potLabel=(k,n)=>n===1?'ポット':k===0?'メインポット':`サイドポット${n>2?k:''}`;
 
+/* 割り切れない端数は、ボタンの左に近い勝者から1枚ずつ */
 function distribute(amount,winners){
   winners.sort((a,b)=>seatOrder(a)-seatOrder(b));
   const share=Math.floor(amount/winners.length);let rem=amount-share*winners.length;
   winners.forEach(w=>{const g=share+(rem>0?1:0);if(rem>0)rem--;w.chips+=g;w.won+=g});
 }
 
+/* ショーダウン：
+   - オールインがいる場合は全員オープン
+   - それ以外は、リバーで最後にベット/レイズした人から（いなければボタンの左から）時計回りに公開。
+     それまでに見せられた一番強い手に負けている人は自動でマック（伏せる） */
 function showdown(){
   G.street='showdown';G.showdown=true;G.cur=-1;
   const live=G.players.filter(p=>!p.out&&!p.folded);
-  live.forEach(p=>{p.best=best(p.hand.concat(G.board));log(`${p.name}: ${cardsTxt(p.hand)} → ${p.best.name}`)});
-  buildPots().forEach(pot=>{
+  live.forEach(p=>{p.best=best(p.hand.concat(G.board))});
+  if(G.tabled||live.some(p=>p.allin)){
+    live.forEach(p=>{p.shown=true;log(`${p.name}: ${cardsTxt(p.hand)} → ${p.best.name}`)});
+  }else{
+    let idx=G.lastAggr>=0&&live.includes(G.players[G.lastAggr])?G.lastAggr:nextIdx(G.dealer,q=>!q.out&&!q.folded);
+    let top=null;
+    for(let k=0;k<live.length;k++){
+      const p=G.players[idx];
+      if(!top||cmp(p.best.score,top)>=0){
+        p.shown=true;if(!top||cmp(p.best.score,top)>0)top=p.best.score;
+        log(`${p.name}: ${cardsTxt(p.hand)} → ${p.best.name}`);
+      }else{p.mucked=true;p.lastAction='マック';log(`${p.name}: マック（負けている手札を伏せました）`)}
+      idx=nextIdx(idx,q=>!q.out&&!q.folded);
+    }
+  }
+  const pots=computePots();
+  G.potResults=[];
+  pots.forEach((pot,k)=>{
+    let el=pot.eligible.filter(p=>!p.mucked);if(!el.length)el=pot.eligible;
     let top=null,ws=[];
-    pot.eligible.forEach(p=>{const c=top?cmp(p.best.score,top):1;if(c>0){top=p.best.score;ws=[p]}else if(c===0)ws.push(p)});
+    el.forEach(p=>{const c=top?cmp(p.best.score,top):1;if(c>0){top=p.best.score;ws=[p]}else if(c===0)ws.push(p)});
     distribute(pot.amount,ws);
     ws.forEach(w=>w.best.cards.forEach(c=>G.winCards.add(key(c))));
+    const label=potLabel(k,pots.length);
+    G.potResults.push({label,amount:pot.amount,winners:ws.map(w=>w.name),hand:ws[0].best.name,split:ws.length>1,contenders:el.length});
+    log(`${label} ${fmt(pot.amount)}（${el.length}人で争い）→ ${ws.map(w=>w.name).join('・')}${ws.length>1?' で分配':''}（${ws[0].best.name}）`,'win');
   });
   finishHand();
 }
 
 function winByFold(w){
   clearTimeout(G.timer);
+  returnUncalled();
   const amt=potG();w.chips+=amt;w.won=amt;G.cur=-1;
+  G.potResults=[{label:'ポット',amount:amt,winners:[w.name],hand:'',split:false,contenders:1,fold:true}];
   finishHand();
 }
 
 function finishHand(){
   const ws=G.players.filter(p=>p.won>0);
-  ws.forEach(p=>{p.lastAction=`+${fmt(p.won)}`;log(`${p.name} が ${fmt(p.won)} 獲得${p.best?`（${p.best.name}）`:''}`,'win')});
+  ws.forEach(p=>{p.lastAction=`+${fmt(p.won)}`;log(`${p.name} が ${fmt(p.won)} 獲得${p.best&&p.shown?`（${p.best.name}）`:''}`,'win')});
   announce(ws.map(w=>`${w.name} の勝ち`).join(' · '));
   G.phase='done';G.reveal=-1;if(APP.sheet==="raise")APP.sheet=null;buzz([20,40,20]);
   changed();
@@ -924,7 +1023,7 @@ function act(type,to){
   clearTimeout(G.timer);
   const p=G.players[G.cur];if(!p||G.phase!=='play')return;
   const toCall=Math.max(0,G.currentBet-p.bet);
-  if(type==='raise'&&(to==null||to<=G.currentBet||p.chips<=toCall||!raiseBounds(p)))type='call';
+  if(type==='raise'&&(to==null||to<=G.currentBet||!raiseBounds(p)))type='call';
   if(type==='fold'){p.folded=true;p.lastAction='フォールド'}
   else if(type==='call'){
     const amt=put(p,toCall);
@@ -933,23 +1032,32 @@ function act(type,to){
     const rb=raiseBounds(p);
     to=Math.max(rb.min,Math.min(to,rb.max));
     const wasBet=G.currentBet===0,inc=to-G.currentBet;
+    // 最低額以上の上乗せなら「フルレイズ」。最低額に届かないオールインは次の最低レイズ額を変えない
     if(inc>=G.minRaise)G.minRaise=inc;
     G.currentBet=to;put(p,to-p.bet);
     G.players.forEach(q=>{if(q!==p)q.acted=false});
+    G.lastAggr=p.id;
     p.lastAction=p.allin?`オールイン ${fmt(p.bet)}`:`${wasBet?'ベット':'レイズ'} ${fmt(to)}`;
   }
-  p.acted=true;G.reveal=-1;if(APP.sheet==="raise")APP.sheet=null;
+  p.acted=true;
+  if(!p.folded)p.actedBet=G.currentBet;
+  G.reveal=-1;if(APP.sheet==="raise")APP.sheet=null;
   log(`${p.name}: ${p.lastAction}`);
   announce(`${p.name}: ${p.lastAction}`);
   if(p.kind==='local')buzz(12);
   advance(G.cur);
 }
 
+/* レイズできる条件：
+   - コール額より多くチップを持っていて、他に行動できる人がいる
+   - すでにこのラウンドで行動した人は、そのあと「フルレイズ以上」の上乗せを受けたときだけレイズし直せる
+     （最低額に届かないオールインだけでは、行動済みの人にレイズの権利は戻らない） */
 function raiseBounds(p){
   const toCall=Math.max(0,G.currentBet-p.bet);
   const max=p.bet+p.chips;
   const others=G.players.filter(q=>q!==p&&canAct(q)).length;
   if(p.chips<=toCall||others===0)return null;
+  if(p.actedBet!=null&&G.currentBet-p.actedBet<G.minRaise)return null;
   const min=Math.min(G.currentBet===0?G.bb:G.currentBet+G.minRaise,max);
   return{min,max,toCall};
 }
@@ -974,12 +1082,12 @@ function cpuAct(){
   return act('fold');
 }
 
-/* リバイ：チップ0で今のハンドに参加していない人だけ。次のハンドから戻る */
+/* リバイ：チップ0で今のハンドに参加していない人だけ。BBを飛ばしていればBBが回ってくるまで待つ */
 const canRebuyG=p=>G.cfg.rebuy&&p.chips<=0&&(p.out||G.phase==='done'||G.phase==='over');
 function rebuy(i){
   const p=G.players[i];if(!p||!canRebuyG(p))return;
   p.chips=G.cfg.chips;p.rebuys++;p.kicked=false;p.lastAction=`リバイ +${fmt(G.cfg.chips)}`;
-  log(`${p.name} がリバイしました（${p.rebuys}回目）`,'sys');announce(`${p.name} がリバイ`);
+  log(`${p.name} がリバイしました（${p.rebuys}回目）${p.missedBB?'。BBを飛ばしているので、BBが回ってきたら配られます':''}`,'sys');announce(`${p.name} がリバイ`);
   buzz(12);changed();
 }
 function kickPlayer(i){
@@ -999,20 +1107,23 @@ function restoreG(S,sec){
   G=freshG();
   Object.assign(G,{cfg:S.settings||{...setupCfg},dealer:S.dealer,sb:S.sb,bb:S.bb,every:(S.settings||{}).every||0,handNo:S.handNo,street:S.street,cur:S.cur,turnId:S.turnId||0,
     currentBet:S.currentBet,minRaise:S.minRaise,phase:S.phase==='done'?'done':S.phase==='over'?'over':'play',showdown:!!S.showdown,winCards:new Set(S.winCards||[]),
-    say:S.say||'',sayN:S.sayN||0,sbI:S.sbI,bbI:S.bbI,log:(S.log||[]).slice(),board:(S.board||[]).map(dec),deck:(sec.deck||[]).map(dec),fresh:99});
+    say:S.say||'',sayN:S.sayN||0,sbI:S.sbI,bbI:S.bbI,sbSeat:S.sbSeat??S.sbI,lastAggr:S.lastAggr??-1,tabled:!!S.tabled,potResults:S.potResults||[],
+    log:(S.log||[]).slice(),board:(S.board||[]).map(dec),deck:(sec.deck||[]).map(dec),fresh:99});
   G.players=S.players.map((q,i)=>({id:i,pid:q.pid,name:q.name,kind:q.pid===APP.pid?'local':q.kind==='cpu'?'cpu':'remote',chips:q.chips,hand:((sec.hands||{})[q.pid]||[]).map(dec),
-    bet:q.bet,total:q.total,folded:q.folded,allin:q.allin,acted:!!q.acted,out:q.out,kicked:!!q.kicked,lastAction:q.lastAction||'',best:q.bestName?{name:q.bestName}:null,won:q.won||0,rebuys:q.rebuys||0,lastRebuy:q.lastRebuy||0}));
+    bet:q.bet,total:q.total,folded:q.folded,allin:q.allin,acted:!!q.acted,actedBet:q.actedBet??null,out:q.out,kicked:!!q.kicked,waitBB:!!q.waitBB,missedBB:!!q.missedBB,
+    shown:!!q.shown,mucked:!!q.mucked,lastAction:q.lastAction||'',best:q.bestName?{name:q.bestName}:null,won:q.won||0,rebuys:q.rebuys||0,lastRebuy:q.lastRebuy||0}));
 }
 
 /* ---------- view model (shared by local, host and player) ---------- */
 function viewFromG(){
   const spect=APP.role==='local'&&!G.players.some(p=>p.kind==='local');
-  return{status:G.phase==='over'?'over':'playing',handNo:G.handNo,sb:G.sb,bb:G.bb,dealer:G.dealer,sbI:G.sbI,bbI:G.bbI,street:G.street,
+  return{status:G.phase==='over'?'over':'playing',handNo:G.handNo,sb:G.sb,bb:G.bb,dealer:G.dealer,sbI:G.sbI,bbI:G.bbI,sbSeat:G.sbSeat,street:G.street,
     board:G.board.map(key),cur:G.cur,turnId:G.turnId,currentBet:G.currentBet,minRaise:G.minRaise,phase:G.phase==='cover'?'play':G.phase,
-    showdown:G.showdown,winCards:[...G.winCards],say:G.say,sayN:G.sayN,log:G.log.slice(-60),pending:G.pending.map(q=>q.name),rebuy:!!G.cfg.rebuy,rebuyChips:G.cfg.chips,
-    players:G.players.map(p=>({pid:p.pid,name:p.name,kind:p.kind==='cpu'?'cpu':'human',chips:p.chips,bet:p.bet,total:p.total,folded:p.folded,allin:p.allin,acted:p.acted,
-      out:p.out,kicked:p.kicked,lastAction:p.lastAction,won:p.won,bestName:p.best?p.best.name:'',rebuys:p.rebuys,lastRebuy:p.lastRebuy,
-      show:p.hand.length&&!p.out&&((G.showdown&&!p.folded)||spect)?p.hand.map(key):null}))};
+    showdown:G.showdown,tabled:G.tabled,lastAggr:G.lastAggr,winCards:[...G.winCards],say:G.say,sayN:G.sayN,log:G.log.slice(-60),pending:G.pending.map(q=>q.name),rebuy:!!G.cfg.rebuy,rebuyChips:G.cfg.chips,
+    pots:G.phase==='play'&&G.handNo>0?computePots().map(p=>({amount:p.amount,n:p.eligible.length})):[],potResults:G.potResults||[],
+    players:G.players.map(p=>({pid:p.pid,name:p.name,kind:p.kind==='cpu'?'cpu':'human',chips:p.chips,bet:p.bet,total:p.total,folded:p.folded,allin:p.allin,acted:p.acted,actedBet:p.actedBet,
+      out:p.out,kicked:p.kicked,waitBB:p.waitBB,missedBB:p.missedBB,shown:p.shown,mucked:p.mucked,lastAction:p.lastAction,won:p.won,bestName:p.best&&(p.shown||G.tabled)?p.best.name:'',rebuys:p.rebuys,lastRebuy:p.lastRebuy,
+      show:p.hand.length&&!p.out&&!p.folded&&((G.showdown&&p.shown)||G.tabled||spect)?p.hand.map(key):(spect&&p.hand.length?p.hand.map(key):null)}))};
 }
 function curView(){return APP.role==='player'?APP.S:G?viewFromG():null}
 function myIdx(V){
@@ -1036,6 +1147,7 @@ function rbV(V,i){
   const p=V.players[i];const toCall=Math.max(0,V.currentBet-p.bet);const max=p.bet+p.chips;
   const others=V.players.filter((q,j)=>j!==i&&!q.out&&!q.folded&&!q.allin).length;
   if(p.chips<=toCall||others===0)return null;
+  if(p.actedBet!=null&&V.currentBet-p.actedBet<V.minRaise)return null; // 最低額未満のオールインではレイズ権は戻らない
   return{min:Math.min(V.currentBet===0?V.bb:V.currentBet+V.minRaise,max),max,toCall};
 }
 function rebuyTargets(V){
@@ -1081,12 +1193,13 @@ const isAway=p=>APP.role!=='local'&&p.kind==='human'&&p.pid!==APP.pid&&!APP.pres
 
 function seatHTML(p,i,V){
   const tags=[];
-  if(i===V.dealer&&!p.out)tags.push('<span class="tag d">D</span>');
-  if(V.status!=='over'&&!p.out&&V.street==='preflop'){if(i===V.sbI)tags.push('<span class="tag b">SB</span>');if(i===V.bbI)tags.push('<span class="tag b">BB</span>')}
+  if(i===V.dealer&&V.status!=='over')tags.push('<span class="tag d">D</span>');
+  if(V.status!=='over'&&!p.out&&V.street==='preflop'){if(V.sbI>=0&&i===V.sbI)tags.push('<span class="tag b">SB</span>');if(i===V.bbI)tags.push('<span class="tag b">BB</span>')}
+  if(p.waitBB&&p.chips>0&&!p.kicked)tags.push('<span class="tag c">BB待ち</span>');
   if(isAway(p)&&!p.out)tags.push('<span class="tag away">不在</span>');
   if(p.rebuys)tags.push(`<span class="tag c">R${p.rebuys}</span>`);
   let mini='';
-  if(!p.out&&!p.folded&&V.handNo>0&&(p.show||p.total>0||p.acted||V.phase!=='over'))mini=p.show?p.show.map(c=>cardHTML(c,V)).join(''):backHTML()+backHTML();
+  if(!p.out&&!p.folded&&!p.mucked&&V.handNo>0&&(p.show||p.total>0||p.acted||V.phase!=='over'))mini=p.show?p.show.map(c=>cardHTML(c,V)).join(''):backHTML()+backHTML();
   const won=p.won>0&&V.phase==='done';
   const cls=['seat',i===V.cur?'cur':'',p.folded&&!p.out?'folded':'',p.out?'out':'',won?'winner':''].join(' ');
   let line=esc(p.lastAction);
@@ -1116,7 +1229,7 @@ function meHTML(V,i){
     else if(bd.length>=3)hint=`いまの役：${best(cs.concat(bd)).name}`;
     else if(cs[0].r===cs[1].r)hint='ポケットペア';
     else if(cs[0].s===cs[1].s)hint='スーテッド';
-  }else if(p.out)hint=p.kicked?'退席中':'脱落しました';
+  }else if(p.out)hint=p.kicked?'退席中':p.waitBB&&p.chips>0?'BBが回ってきたら配られます':'脱落しました';
   else if(APP.role==='player'&&V.handNo>0&&!p.folded){hole=backHTML('lg')+backHTML('lg');hint='手札を受け取っています…'}
   if(V.phase==='done'&&p.won>0)hint=`+${fmt(p.won)} 獲得！${p.bestName?` ${esc(p.bestName)}`:''}`;
   return`<div class="me ${i===V.cur&&V.phase==='play'?'cur':''}" data-j="${i}">
@@ -1143,8 +1256,8 @@ function dockHTML(V,i){
         :`${alive>=2?'<button class="abtn wide" id="next">次のハンドへ</button>':''}<button class="abtn ${alive>=2?'quiet':'wide'}" id="again">${host?'ロビーに戻る':'新しいゲーム'}</button>`}</div>`;
   }
   if(V.phase==='done'){
-    const ws=V.players.filter(p=>p.won>0);
-    return`<div class="results">${ws.map(w=>`<div class="w"><b>${esc(w.name)}</b> +${fmt(w.won)}${w.bestName?` · ${esc(w.bestName)}`:' · 全員フォールド'}</div>`).join('')}</div>
+    const prs=V.potResults&&V.potResults.length?V.potResults:V.players.filter(p=>p.won>0).map(w=>({label:'ポット',amount:w.won,winners:[w.name],hand:w.bestName}));
+    return`<div class="results">${prs.map(r=>`<div class="w"><span class="plabel">${esc(r.label)} ${fmt(r.amount)}</span> → <b>${r.winners.map(esc).join('・')}</b>${r.split?'（分配）':''} · ${r.fold?'全員フォールド':esc(r.hand||'')}</div>`).join('')}</div>
       <div class="actions">${rbs}${player?'<div class="status" style="grid-column:1/-1">ホストが次のハンドを配るのを待っています</div>':'<button class="abtn wide" id="next">次のハンドへ</button>'}</div>`;
   }
   const p=V.cur>=0?V.players[V.cur]:null;
@@ -1267,6 +1380,7 @@ function renderGame(){
       <div class="felt-head">${STREET_EN[V.street]||''}${V.street?`<small>${STREET_JP[V.street]}</small>`:''}</div>
       <div class="board">${[0,1,2,3,4].map(k=>{const last=APP.lastBoardLen??0;const nw=V.board[k]&&k>=last;return cardHTML(V.board[k],V,`lg ${nw?'deal':''}`,nw?`--d:${(k-last)*.16}s`:'')}).join('')}</div>
       <div class="pot" id="pot"><span class="stack3">${chipI(25)}${chipI(100)}${chipI(500)}</span><span>POT</span>${fmt(V.phase==='done'?V.players.reduce((s,p)=>s+(p.won||0),0):potV(V))}</div>
+      ${(V.pots||[]).length>1?`<div class="pots">${V.pots.map((p,k)=>`<span class="potpill ${k===0?'main':''}"><em>${k===0?'メイン':`サイド${V.pots.length>2?k:''}`}</em>${fmt(p.amount)}<small>${p.n}人</small></span>`).join('')}</div>`:''}
       <div class="say ${APP.sayShown!==V.sayN?'flash':''}">${esc(V.say)}</div>
     </div></div>
     </div>
@@ -1372,7 +1486,7 @@ function fxAfterRender(V,i){
     for(const [pid,o] of Object.entries(now.acts)){
       const q=P.acts[pid];if(!q||q.a===o.a||!o.a)continue;
       const a=o.a,el=seatEl(o.j);
-      if(a.startsWith('フォールド')||a==='退席')SFX.fold();
+      if(a.startsWith('フォールド')||a==='退席'||a==='マック')SFX.fold();
       else if(a.startsWith('チェック'))SFX.check();
       else if(a.startsWith('オールイン')){SFX.allin();fxBanner('ALL IN',V.players[o.j].name,'allin');buzz([40,30,40]);chipFly(el,pot,6)}
       else if(/^(コール|ベット|レイズ)/.test(a)){SFX.chip();chipFly(el,pot,a.startsWith('コール')?2:4)}
