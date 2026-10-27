@@ -83,7 +83,31 @@ button:active:not(:disabled){transform:translateY(1px) scale(.98)}
 
 /* ---- opponents ---- */
 .mid{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center}
-.opps{flex:0 1 auto;min-height:0;overflow-y:auto;padding:4px 16px 8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:6px;align-content:start}
+.opps{flex:1 1 0;min-height:0;overflow:hidden;padding:4px 16px 8px;display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));gap:6px;align-content:center}
+.opps.overflow{overflow-y:auto}
+/* 人数が多いときの詰めた表示（スクロールせずに全員を1画面に収める） */
+.opps.compact{gap:4px}
+.opps.compact .seat{padding:4px 6px;gap:1px;border-radius:10px}
+.opps.compact .av{width:16px;height:16px;font-size:.56rem}
+.opps.compact .nm{font-size:.74rem}
+.opps.compact .mini{--cw:14px;min-height:20px}
+.opps.compact .act{font-size:.62rem}
+.opps.tiny{gap:3px}
+.opps.tiny .seat{padding:3px 5px;gap:0;border-radius:8px}
+.opps.tiny .av,.opps.tiny .seat-mid{display:none}
+.opps.tiny .nm{font-size:.68rem}
+.opps.tiny .pos,.opps.tiny .tag{font-size:.52rem;padding:0 3px}
+.opps.tiny .act{font-size:.6rem;min-height:1em}
+.opps.tiny .chips2,.opps.tiny .mtxt{display:inline}
+.chips2,.mtxt{display:none}
+.chips2{font-family:var(--f-num);color:var(--ink);margin-right:4px}
+.mtxt{font-family:var(--f-num);color:var(--ink);margin-right:4px}
+#app.tight .board{--cw:min(11vw,42px,6.5vh)}
+#app.tight .felt{padding:6px 8px 8px;gap:4px}
+#app.tight .felt-logo{display:none}
+#app.tight .me{margin-top:4px;padding:5px 8px;min-height:0}
+#app.tight .me .hole{--cw:min(14vw,52px,8vh)}
+#app.tight .abtn{height:52px}
 .seat{position:relative;background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:12px;padding:6px 7px;display:flex;flex-direction:column;gap:3px;min-width:0;transition:border-color .25s,opacity .25s,box-shadow .25s}
 .seat.cur{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 0 16px rgba(217,180,90,.45);animation:seatpulse 1.4s ease-in-out infinite}
 @keyframes seatpulse{50%{box-shadow:0 0 0 1px var(--gold),0 0 4px rgba(217,180,90,.2)}}
@@ -96,6 +120,11 @@ button:active:not(:disabled){transform:translateY(1px) scale(.98)}
 .tag{font-size:.58rem;font-weight:700;border-radius:4px;padding:0 4px;flex:none;line-height:1.5}
 .tag.d{background:linear-gradient(180deg,#fff,#d9d4c4);color:#111;border-radius:999px;padding:0 5px;box-shadow:0 1px 2px rgba(0,0,0,.5)}
 .tag.b{border:1px solid var(--gold);color:var(--gold)}
+.pos{font-family:var(--f-num);font-size:.58rem;font-weight:500;border-radius:4px;padding:0 4px;flex:none;line-height:1.5;background:rgba(255,255,255,.08);color:var(--ink);letter-spacing:.02em}
+.pos.btn{background:rgba(246,228,166,.18);color:var(--gold-hi)}
+.pos.blind{border:1px solid var(--gold);color:var(--gold);background:transparent}
+.posinfo{font-size:.7rem;color:var(--muted);line-height:1.35}
+.posinfo b{color:var(--gold-hi);font-weight:700}
 .tag.away{border:1px solid var(--danger);color:var(--danger)}
 .tag.c{border:1px solid var(--line);color:var(--muted)}
 .seat-mid{display:flex;align-items:center;justify-content:space-between;gap:4px}
@@ -113,7 +142,7 @@ button:active:not(:disabled){transform:translateY(1px) scale(.98)}
 .felt-logo{font-family:var(--f-lux);font-size:.62rem;letter-spacing:.42em;color:rgba(246,228,166,.42);font-weight:700;text-indent:.42em}
 .felt-head{font-family:var(--f-lux);font-size:.72rem;letter-spacing:.24em;color:var(--gold-hi);font-weight:700;min-height:1.1em;text-shadow:0 1px 2px rgba(0,0,0,.6)}
 .felt-head small{font-family:var(--f-body);letter-spacing:.06em;color:rgba(244,239,225,.6);font-weight:500;margin-left:6px}
-.board{display:flex;gap:6px;--cw:min(14.5vw,56px);perspective:600px}
+.board{display:flex;gap:6px;--cw:min(14.5vw,56px,8vh);perspective:600px}
 .pot{display:flex;align-items:center;font-family:var(--f-lux);font-weight:700;font-size:1.25rem;background:rgba(0,0,0,.32);border:1px solid rgba(246,228,166,.25);border-radius:999px;padding:3px 16px 3px 10px;color:var(--gold-hi);box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
 .pot span{font-family:var(--f-body);font-size:.66rem;color:var(--muted);margin-right:6px;font-weight:500;letter-spacing:.08em}
 .pots{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 5px;width:100%;padding:0 14px}
@@ -128,9 +157,9 @@ button:active:not(:disabled){transform:translateY(1px) scale(.98)}
 @keyframes say{from{transform:translateY(5px);opacity:0}to{transform:none;opacity:.92}}
 
 /* ---- my pad ---- */
-.me{margin:8px 16px 0;display:flex;align-items:center;gap:12px;min-height:calc(min(19vw,72px)*1.4 + 16px);padding:8px 10px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(0,0,0,.18));border:1px solid var(--line);transition:box-shadow .3s,border-color .3s}
+.me{margin:8px 16px 0;display:flex;align-items:center;gap:12px;min-height:calc(min(19vw,72px,10vh)*1.4 + 16px);padding:8px 10px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(0,0,0,.18));border:1px solid var(--line);transition:box-shadow .3s,border-color .3s}
 .me.cur{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 0 24px rgba(217,180,90,.35)}
-.me .hole{display:flex;gap:6px;--cw:min(19vw,72px)}
+.me .hole{display:flex;gap:6px;--cw:min(19vw,72px,10vh)}
 .me .hole .card:nth-child(2){transform:rotate(4deg) translateY(2px)}
 .me .hole .card:nth-child(1){transform:rotate(-3deg)}
 .me .hole .card.deal{animation:dealme .5s cubic-bezier(.2,.8,.3,1.15) both;animation-delay:var(--d,0s)}
@@ -347,14 +376,7 @@ const caps={db:null,room:null,user:null,uid:null,ready:false};
 const APP={screen:'home',role:null,name:store.get('holdem-name')||'',pass:'',hash:'',pid:'',keys:null,
   S:null,myCards:null,myCt:null,actedTurn:-1,err:'',sheet:null,amt:0,connected:true,
   present:new Set(),known:{},lobbyCpus:[],unsubPeers:null,unsubDoc:null,unsubConn:null,busy:false};
-// 端末ごとの識別番号。ブラウザを閉じても消えないよう端末に保存する（同じスマホなら同じ人として戻れる）
-APP.cid=window.HOLDEM_CID||(()=>{
-  let c=store.get('holdem-cid');
-  if(!c){try{c=sessionStorage.getItem('holdem-cid')}catch(e){}}
-  if(!c)c=Math.random().toString(36).slice(2,10);
-  store.set('holdem-cid',c);try{sessionStorage.setItem('holdem-cid',c)}catch(e){}
-  return c;
-})();
+APP.cid=window.HOLDEM_CID||(()=>{let c=null;try{c=sessionStorage.getItem('holdem-cid')}catch(e){}if(!c){c=Math.random().toString(36).slice(2,10);try{sessionStorage.setItem('holdem-cid',c)}catch(e){}}return c})();
 
 /* --- 通信レイヤー：claude.ai 上では共有DB＋ルーム、それ以外の普通のサイトでは公開MQTTサーバー --- */
 let NET=null;
@@ -553,16 +575,6 @@ function onPeersHost(peers){
   });
   APP.present=now;
   if(!G){publish();render();return}
-  // 別の識別番号で戻ってきた人（端末を変えた・履歴を消した等）：同じ名前の「不在」の席があれば、その席にチップごと戻す
-  now.forEach(pid=>{
-    if(G.players.some(p=>p.pid===pid))return;
-    const nm=APP.known[pid].name;
-    const seat=G.players.find(p=>p.kind==='remote'&&!now.has(p.pid)&&p.name===nm);
-    if(!seat)return;
-    seat.pid=pid;
-    G.pending=G.pending.filter(q=>q.pid!==pid);
-    log(`${nm} が席に戻りました`,'sys');announce(`${nm} が戻りました`);
-  });
   // 名前の更新・戻ってきた人
   G.players.forEach(p=>{if(p.kind==='remote'&&APP.known[p.pid]){p.name=APP.known[p.pid].name;if(now.has(p.pid))p.kicked=false}});
   // 途中参加は次のハンドから
@@ -1208,10 +1220,51 @@ const chipI=n=>`<i class="chip-ico" style="--cc:${chipColor(n)}"></i>`;
 const STREET_EN={preflop:'PRE-FLOP',flop:'FLOP',turn:'TURN',river:'RIVER',showdown:'SHOWDOWN'};
 const isAway=p=>APP.role!=='local'&&p.kind==='human'&&p.pid!==APP.pid&&!APP.present.has(p.pid)&&!(APP.role==='player'&&APP.S&&p.pid===APP.S.hostPid&&APP.hostHere);
 
+/* ポジション名：BB の左から UTG → … → HJ → CO → BTN（ボタン）→ SB → BB の順。2人のときはボタン＝SB */
+const POS_INFO={
+  'BTN':['ボタン','フロップ以降はいつも最後に行動できる、一番有利な席'],
+  'BTN/SB':['ボタン兼スモールブラインド','2人対戦。プリフロップは先に、フロップ以降は後に行動'],
+  'SB':['スモールブラインド','強制ベットあり。フロップ以降は最初に行動'],
+  'BB':['ビッグブラインド','強制ベットあり。プリフロップは最後に行動'],
+  'UTG':['アンダー・ザ・ガン','プリフロップで最初に行動する席'],
+  'MP':['ミドルポジション','真ん中あたりで行動する席'],
+  'LJ':['ロージャック','ボタンの3つ前'],
+  'HJ':['ハイジャック','ボタンの2つ前'],
+  'CO':['カットオフ','ボタンの1つ前。後ろから2番目に行動'],
+};
+function positionsOf(V){
+  const n=V.players.length,lab=new Array(n).fill('');
+  if(!V.handNo||V.status==='over'||V.bbI==null||V.bbI<0)return lab;
+  const dealt=j=>j>=0&&V.players[j]&&!V.players[j].out;
+  const nx=from=>{for(let k=1;k<=n;k++){const j=(from+k)%n;if(dealt(j))return j}return -1};
+  if(V.players.filter(p=>!p.out).length===2){lab[V.bbI]='BB';if(V.sbI>=0)lab[V.sbI]='BTN/SB';return lab}
+  if(V.sbI>=0)lab[V.sbI]='SB';
+  lab[V.bbI]='BB';
+  const btn=dealt(V.dealer)&&V.dealer!==V.sbI&&V.dealer!==V.bbI?V.dealer:-1;
+  if(btn>=0)lab[btn]='BTN';
+  const mid=[];
+  for(let j=nx(V.bbI);j>=0&&j!==V.bbI&&j!==btn&&j!==V.sbI&&mid.length<n;j=nx(j))mid.push(j);
+  const m=mid.length,endL=['CO','HJ','LJ','MP'].slice(0,Math.max(0,Math.min(m-1,4)));
+  endL.forEach((l,k)=>{lab[mid[m-1-k]]=l});
+  for(let k=0;k<m-endL.length;k++)lab[mid[k]]=k===0?'UTG':`UTG+${k}`;
+  return lab;
+}
+const posBadge=l=>`<span class="pos ${l==='BB'||l==='SB'||l==='BTN/SB'?'blind':l==='BTN'?'btn':''}">${l}</span>`;
+function posInfoHTML(V,i){
+  const l=positionsOf(V)[i];if(!l||V.phase==='done')return'';
+  const info=POS_INFO[l]||(l.startsWith('UTG+')?[`UTG+${l.slice(4)}`,`UTGの${l.slice(4)}つ後ろ。前の方で行動する席`]:[l,'']);
+  // このラウンドで何番目に行動するか（プリフロップはBBの左から、フロップ以降はボタンの左から）
+  const n=V.players.length,start=V.street==='preflop'?V.bbI:V.dealer,order=[];
+  for(let k=1;k<=n;k++){const j=(start+k)%n;const q=V.players[j];if(q&&!q.out&&!q.folded)order.push(j)}
+  const pos=order.indexOf(i)+1;
+  return`<div class="posinfo"><b>${esc(info[0])}</b> ${esc(info[1])}${pos>0&&V.phase==='play'?` · 行動順 <b>${pos}</b>/${order.length}`:''}</div>`;
+}
+
 function seatHTML(p,i,V){
   const tags=[];
-  if(i===V.dealer&&V.status!=='over')tags.push('<span class="tag d">D</span>');
-  if(V.status!=='over'&&!p.out&&V.street==='preflop'){if(V.sbI>=0&&i===V.sbI)tags.push('<span class="tag b">SB</span>');if(i===V.bbI)tags.push('<span class="tag b">BB</span>')}
+  if(i===V.dealer&&V.status!=='over')tags.push(`<span class="tag d" title="ボタン（ディーラー）">D</span>`);
+  const pl=positionsOf(V)[i];
+  if(pl)tags.push(posBadge(pl));
   if(p.waitBB&&p.chips>0&&!p.kicked)tags.push('<span class="tag c">BB待ち</span>');
   if(isAway(p)&&!p.out)tags.push('<span class="tag away">不在</span>');
   if(p.rebuys)tags.push(`<span class="tag c">R${p.rebuys}</span>`);
@@ -1225,7 +1278,7 @@ function seatHTML(p,i,V){
   return`<div class="${cls}" data-j="${i}">
     <div class="seat-top"><span class="av" style="--h:${hueOf(p.pid)}">${esc([...String(p.name)][0]||'?')}</span><span class="nm">${esc(p.name)}</span>${tags.join('')}</div>
     <div class="seat-mid"><div class="mini">${mini}</div><span class="chips">${fmt(p.chips)}</span></div>
-    <div class="act ${won?'win':''}"><span>${line||'&nbsp;'}</span>${bet}</div>
+    <div class="act ${won?'win':''}"><span><span class="chips2">${fmt(p.chips)}</span>${p.show&&!p.folded?`<span class="mtxt">${p.show.map(c=>{const o=dec(c);return RL(o.r)+SUIT[o.s]}).join('')}</span>`:''}${line||'&nbsp;'}</span>${bet}</div>
   </div>`;
 }
 
@@ -1252,9 +1305,10 @@ function meHTML(V,i){
   return`<div class="me ${i===V.cur&&V.phase==='play'?'cur':''}" data-j="${i}">
     <div class="hole">${hole}</div>
     <div class="info">
-      <div class="who"><span class="av" style="--h:${hueOf(p.pid)}">${esc([...String(p.name)][0]||'?')}</span>${esc(p.name)} ${i===V.dealer&&!p.out?'<span class="tag d">D</span>':''}${p.bet>0&&V.phase!=='done'?`<span class="betchip">${chipI(p.bet)}${fmt(p.bet)}</span>`:''}</div>
+      <div class="who"><span class="av" style="--h:${hueOf(p.pid)}">${esc([...String(p.name)][0]||'?')}</span>${esc(p.name)} ${i===V.dealer&&!p.out?'<span class="tag d">D</span>':''}${positionsOf(V)[i]?posBadge(positionsOf(V)[i]):''}${p.bet>0&&V.phase!=='done'?`<span class="betchip">${chipI(p.bet)}${fmt(p.bet)}</span>`:''}</div>
       <div class="stack">${chipI(p.chips)}${fmt(p.chips)}</div>
       <div class="hint">${hint}</div>
+      ${posInfoHTML(V,i)}
     </div>
   </div>`;
 }
@@ -1375,7 +1429,10 @@ function renderGame(){
   if(!V||!V.players){renderLobby();return}
   $('#app').dataset.screen='game';
   const i=myIdx(V);
-  const others=V.players.map((p,j)=>[p,j]).filter(([p,j])=>!(j===i&&(APP.role!=='local'||localHumans().length===1)));
+  // 相手は「自分の左隣から時計回り」（＝行動する順）に並べる。自分がいなければボタンの左から
+  const nP=V.players.length,from=i>=0?i:Math.max(0,V.dealer);
+  const others=V.players.map((p,j)=>[p,j]).filter(([p,j])=>!(j===i&&(APP.role!=='local'||localHumans().length===1)))
+    .sort((a,b)=>((a[1]-from-1+nP)%nP)-((b[1]-from-1+nP)%nP));
   const showCover=APP.role==='local'&&G.phase==='cover'&&G.cur>=0;
   const alive=V.players.filter(p=>!p.out).length;
   let banner=APP.err;
@@ -1413,7 +1470,7 @@ function renderGame(){
     </div>`:''}`;
   APP.sayShown=V.sayN;APP.lastBoardLen=V.board.length;
   bindGame(V,i);
-  const cur=$('.opps .seat.cur');if(cur)cur.scrollIntoView({block:'nearest',behavior:'smooth'});
+  fitSeats();
   try{fxAfterRender(V,i)}catch(e){console.warn(e)}
 }
 
@@ -1520,6 +1577,32 @@ function fxAfterRender(V,i){
   }
   if(now.mine&&!(P.mine&&P.turnId===now.turnId)){SFX.turn();buzz([30,60,30])}
 }
+
+/* 相手の席を、スクロールなしで全員1画面に収める。
+   ふつう → 詰めた表示 → 最小表示 の順に試し、それでも入らなければテーブルと手札も小さくする */
+function fitSeats(){
+  const box=$('#opps'),app=$('#app');if(!box)return;
+  const n=box.children.length;
+  app.classList.remove('tight');box.classList.remove('overflow');
+  if(!n){box.className='opps';return}
+  const fits=()=>box.scrollHeight<=box.clientHeight+1;
+  const modes=[['',104],['compact',90],['tiny',72],['tiny',60]];
+  const tryAll=()=>{
+    const cs=getComputedStyle(box);
+    const W=box.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
+    for(const [m,minW] of modes){
+      const cols=Math.max(1,Math.min(n,Math.floor((W+6)/(minW+6))));
+      box.className='opps '+m;box.style.setProperty('--cols',cols);
+      if(fits())return true;
+    }
+    return false;
+  };
+  if(tryAll())return;
+  app.classList.add('tight');
+  if(tryAll())return;
+  box.classList.add('overflow'); // どうしても入らない極端に小さい画面だけ、最後の手段としてスクロール
+}
+addEventListener('resize',()=>{if(APP.screen==='game')fitSeats()});
 
 function setAmt(V,i,v){
   const rb=rbV(V,i);if(!rb)return;const p=V.players[i];
