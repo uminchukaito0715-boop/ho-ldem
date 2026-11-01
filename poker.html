@@ -103,9 +103,9 @@ button:active:not(:disabled){transform:translateY(1px) scale(.98)}
 .chips2,.mtxt{display:none}
 .chips2{font-family:var(--f-num);color:var(--ink);margin-right:4px}
 .mtxt{font-family:var(--f-num);color:var(--ink);margin-right:4px}
-#app.tight .board{--cw:min(11vw,42px,6.5vh)}
-#app.tight .felt{padding:6px 8px 8px;gap:4px}
-#app.tight .felt-logo{display:none}
+#app.tb .board{--cw:min(11vw,42px,6.5vh)}
+#app.tb .felt{padding:6px 8px 8px;gap:4px}
+#app.tb .felt-logo{display:none}
 #app.tight .me{margin-top:4px;padding:5px 8px;min-height:0}
 #app.tight .me .hole{--cw:min(14vw,52px,8vh)}
 #app.tight .abtn{height:52px}
@@ -387,7 +387,7 @@ body{background:
   #app[data-screen="game"] .dock.myturn::before{left:0;right:12px}
   #app[data-screen="game"] .actions{grid-template-columns:repeat(3,minmax(0,1fr))}
   #app[data-screen="game"] .abtn{font-size:.92rem;white-space:nowrap}
-  #app.tight[data-screen="game"] .board{--cw:min(11vh,6vw,64px)}
+  #app.tb[data-screen="game"] .board{--cw:min(11vh,6vw,64px)}
 }
 @media (orientation:landscape) and (min-width:560px) and (min-height:600px){
   #app[data-screen="game"] .opps:not(.compact):not(.tiny) .mini{--cw:30px;min-height:42px}
@@ -540,7 +540,7 @@ body{background:
   .home .hero h1{font-size:3.1rem}
 }
 @media (max-height:480px){.abtn .al em{display:none}}
-#app.tight .rail{padding:5px;margin:2px 8px}
+#app.tb .rail{padding:5px;margin:2px 8px}
 #app.tight .posinfo,#app.tight .say,#app.tight .hint{display:none}
 #app.tight .dock{gap:4px;padding-top:4px}
 
@@ -591,10 +591,10 @@ html[data-scr="home"] #bgx{background:var(--a-stacks) left -24px bottom -14px/cl
 @media (max-width:360px){.abtn{font-size:.82rem}}
 .fxbig.img{width:280px;max-width:80vw;aspect-ratio:297/156;font-size:0;color:transparent;background:var(--a-win) center/contain no-repeat;filter:drop-shadow(0 6px 14px rgba(0,0,0,.7))}
 .fxbig.img.lose{aspect-ratio:257/144;width:240px;background-image:var(--a-lose)}
-#app.tight .rail{--rb:34px;padding:0!important;margin:2px 8px}
-#app.tight .felt{margin:-10px -12px}
-#app.tight .pot{--pw:128px;font-size:.95rem}
-#app.tight .felt-head{display:none}
+#app.tb .rail{--rb:34px;padding:0!important;margin:2px 8px}
+#app.tb .felt{margin:-10px -12px}
+#app.tb .pot{--pw:128px;font-size:.95rem}
+#app.tb .felt-head{display:none}
 
 .hero h1.logo-img{background:var(--a-logo) center/contain no-repeat;-webkit-background-clip:border-box;background-clip:border-box;color:transparent;filter:none;font-size:0!important;line-height:0}
 .hero-cards{width:min(70%,250px);aspect-ratio:372/211;margin-bottom:-34px;background:var(--a-cards) center/contain no-repeat}
@@ -738,6 +738,14 @@ html[data-scr="other"] #bgx{background:linear-gradient(180deg,rgba(6,5,4,.66),rg
 .rs-awards em{font-style:normal;font-size:.68rem;color:var(--gold)}
 .rs-awards b{font-size:1.05rem;color:var(--gold-hi)}
 .rs-awards span{font-size:.7rem;color:var(--muted)}
+/* ---- テーブルは常に同じ大きさ ---- */
+#app.tb .rail{flex:none}
+#app.tb .say{display:none}
+#app.tb .pots{position:absolute;left:0;right:0;bottom:0;display:flex;flex-wrap:nowrap;justify-content:center;gap:4px;margin:0}
+#app.tb .felt:has(.pots) .pot{visibility:hidden}
+#app.tb .pots{padding:0}
+#app.tb .potpill{white-space:nowrap;font-size:.68rem;padding:1px 6px;gap:3px}
+#app.tb .potpill em,#app.tb .potpill small{white-space:nowrap}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 
@@ -2556,7 +2564,10 @@ function fxAfterRender(V,i){
 function fitSeats(){
   const box=$('#opps'),app=$('#app');if(!box)return;
   const n=box.children.length;
+  // 縦画面は常に小さいテーブル。横画面は人数と画面サイズで1度決めたら、ゲーム中は変えない
+  const tk=innerWidth+'x'+innerHeight+'x'+n;
   app.classList.remove('tight');box.classList.remove('overflow');
+  app.classList.toggle('tb',innerHeight>=innerWidth||APP.tbKey===tk);
   if(!n){box.className='opps';return}
   const fits=()=>box.scrollHeight<=box.clientHeight+1;
   const modes=[['',104],['compact',90],['tiny',72],['tiny',60]];
@@ -2572,6 +2583,7 @@ function fitSeats(){
   };
   if(tryAll())return;
   app.classList.add('tight');
+  if(!app.classList.contains('tb')){app.classList.add('tb');APP.tbKey=tk}
   if(tryAll())return;
   box.classList.add('overflow'); // どうしても入らない極端に小さい画面だけ、最後の手段としてスクロール
 }
