@@ -88,7 +88,7 @@ button:active:not(:disabled){transform:translateY(1px) scale(.98)}
 /* 人数が多いときの詰めた表示（スクロールせずに全員を1画面に収める） */
 .opps.compact{gap:4px}
 .opps.compact .seat{padding:4px 6px;gap:1px;border-radius:10px}
-.opps.compact .av{width:16px;height:16px;font-size:.56rem}
+.opps.compact .av{display:none}
 .opps.compact .nm{font-size:.74rem}
 .opps.compact .mini{--cw:14px;min-height:20px}
 .opps.compact .act{font-size:.62rem}
@@ -299,6 +299,51 @@ details.rules summary small{font-weight:400;color:var(--muted);margin-left:6px;f
 .waiting{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:.9rem;padding:6px 0}
 .waiting::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--gold);animation:blink 1s infinite}
 @keyframes blink{50%{opacity:.2}}
+
+/* ---- 横画面・パソコン：左にテーブルと相手、右に自分の手札と操作 ---- */
+@media (orientation:landscape) and (min-width:560px){
+  #app[data-screen="game"]{max-width:1280px;padding-inline:env(safe-area-inset-left,0px) env(safe-area-inset-right,0px);display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,34vw,380px);grid-template-rows:auto auto minmax(0,1fr) auto}
+  #app[data-screen="game"] .top,#app[data-screen="game"] .banner{grid-column:1/-1}
+  #app[data-screen="game"] .top{grid-row:1}
+  #app[data-screen="game"] .banner{grid-row:2}
+  #app[data-screen="game"] .mid{grid-column:1;grid-row:3/5;min-height:0}
+  #app[data-screen="game"] .rail{width:calc(100% - 24px);max-width:860px;align-self:center;flex:none}
+  #app[data-screen="game"] .board{--cw:min(15vh,7.5vw,88px)}
+  #app[data-screen="game"] .me{grid-column:2;grid-row:3;align-self:end;margin:4px 12px 0 0;min-height:0}
+  #app[data-screen="game"] .me .hole{--cw:min(17vh,6.5vw,84px)}
+  #app[data-screen="game"] .dock{grid-column:2;grid-row:4;padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px)) 0}
+  #app[data-screen="game"] .dock.myturn::before{left:0;right:12px}
+  #app[data-screen="game"] .actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #app[data-screen="game"] .abtn{font-size:.92rem;white-space:nowrap}
+  #app.tight[data-screen="game"] .board{--cw:min(11vh,6vw,64px)}
+}
+@media (orientation:landscape) and (min-width:560px) and (min-height:600px){
+  #app[data-screen="game"] .opps:not(.compact):not(.tiny) .mini{--cw:30px;min-height:42px}
+  #app[data-screen="game"] .opps:not(.compact):not(.tiny) .nm{font-size:.9rem}
+  #app[data-screen="game"] .opps:not(.compact):not(.tiny) .chips{font-size:.92rem}
+  #app[data-screen="game"] .opps:not(.compact):not(.tiny) .act{font-size:.76rem}
+}
+/* タブレットの縦画面 */
+@media (orientation:portrait) and (min-width:700px){
+  #app[data-screen="game"]{max-width:760px}
+  #app[data-screen="game"] .board{--cw:min(11vw,84px,8vh)}
+  #app[data-screen="game"] .me .hole{--cw:min(11vw,84px,10vh)}
+}
+/* 高さが低い画面（横向きのスマホなど） */
+@media (max-height:480px){
+  .felt-logo{display:none}
+  .felt{padding:6px 8px 8px;gap:4px}
+  .abtn{height:52px}
+  .sheet{gap:8px;padding-top:6px}
+  .big-amt{font-size:1.8rem}
+  .big-amt small{margin-top:2px}
+  .preset{padding:8px 0}
+  .round{width:40px;height:40px}
+  .confirm{height:46px}
+  .cover{gap:6px;padding:8px 16px}
+  .cover h2{font-size:1.3rem}
+  .cover .backs{--cw:42px;margin:2px 0}
+}
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
