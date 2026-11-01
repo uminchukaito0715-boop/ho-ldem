@@ -421,7 +421,14 @@ const caps={db:null,room:null,user:null,uid:null,ready:false};
 const APP={screen:'home',role:null,name:store.get('holdem-name')||'',pass:'',hash:'',pid:'',keys:null,
   S:null,myCards:null,myCt:null,actedTurn:-1,err:'',sheet:null,amt:0,connected:true,
   present:new Set(),known:{},lobbyCpus:[],unsubPeers:null,unsubDoc:null,unsubConn:null,busy:false};
-APP.cid=window.HOLDEM_CID||(()=>{let c=null;try{c=sessionStorage.getItem('holdem-cid')}catch(e){}if(!c){c=Math.random().toString(36).slice(2,10);try{sessionStorage.setItem('holdem-cid',c)}catch(e){}}return c})();
+// 端末ごとの識別番号。ブラウザを閉じても消えないよう端末に保存する（同じスマホなら同じ人として戻れる）
+APP.cid=window.HOLDEM_CID||(()=>{
+  let c=store.get('holdem-cid');
+  if(!c){try{c=sessionStorage.getItem('holdem-cid')}catch(e){}}
+  if(!c)c=Math.random().toString(36).slice(2,10);
+  store.set('holdem-cid',c);try{sessionStorage.setItem('holdem-cid',c)}catch(e){}
+  return c;
+})();
 
 /* --- 通信レイヤー：claude.ai 上では共有DB＋ルーム、それ以外の普通のサイトでは公開MQTTサーバー --- */
 let NET=null;
@@ -620,6 +627,16 @@ function onPeersHost(peers){
   });
   APP.present=now;
   if(!G){publish();render();return}
+  // 別の識別番号で戻ってきた人（端末やブラウザを変えた・履歴を消した等）：同じ名前の「不在」の席があれば、その席にチップごと戻す
+  now.forEach(pid=>{
+    if(G.players.some(p=>p.pid===pid))return;
+    const nm=APP.known[pid].name;
+    const seat=G.players.find(p=>p.kind==='remote'&&!now.has(p.pid)&&p.name===nm);
+    if(!seat)return;
+    seat.pid=pid;
+    G.pending=G.pending.filter(q=>q.pid!==pid);
+    log(`${nm} が席に戻りました`,'sys');announce(`${nm} が戻りました`);
+  });
   // 名前の更新・戻ってきた人
   G.players.forEach(p=>{if(p.kind==='remote'&&APP.known[p.pid]){p.name=APP.known[p.pid].name;if(now.has(p.pid))p.kicked=false}});
   // 途中参加は次のハンドから
@@ -926,6 +943,8 @@ function placeBlinds(){
 function newHand(){
   clearTimeout(G.timer);
   G.pending.splice(0).forEach(q=>{
+    // 同じ名前の席があるうちは新しい席を作らない（急に閉じた場合、前の接続が切れたと分かるまで時間がかかるため）。切れたらその席に戻る
+    if(G.players.some(p=>p.kind==='remote'&&p.name===q.name)){G.pending.push(q);return}
     if(G.players.length<MAXP&&!G.players.some(p=>p.pid===q.pid)){
       const wait=G.handNo>0;
       G.players.push(mkPlayer(q,G.players.length,G.cfg.chips,wait));
@@ -1400,8 +1419,8 @@ function dockHTML(V,i){
     </div>`;
 }
 
-/* ベット額は10刻み（最小額とオールイン額だけは端数のまま選べる） */
-const STEP=10;
+/* ベット額は50刻み（最小額とオールイン額だけは端数のまま選べる） */
+const STEP=50;
 function snapAmt(v,rb){
   if(v>=rb.max)return rb.max;
   if(v<=rb.min)return rb.min;
