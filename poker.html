@@ -684,6 +684,24 @@ html[data-scr="other"] #bgx{background:linear-gradient(180deg,rgba(6,5,4,.66),rg
   .lobby-left>.steps{width:auto}
   .lobby-left{gap:10px}
 }
+.sdh{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:4px 6px;--cw:27px}
+.sdp{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;padding:3px 7px;background:rgba(8,6,4,.85);border:1px solid var(--gold-lo)}
+.sdp.win{border-color:var(--gold-hi);box-shadow:0 0 8px rgba(246,228,166,.4)}
+.sdp .who{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.sdp .nm,.sdp .hn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sdp .nm{font-size:.78rem;font-weight:700}
+.sdp .hn{font-size:.72rem;color:var(--gold)}
+.sdp .cs{display:flex;gap:2px;flex:none}
+.sdp .card.win{transform:none;box-shadow:0 0 0 2px var(--gold)}
+.sdh.dense{--cw:19px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:2px 4px}
+.sdh.dense .sdp{padding:1px 5px}
+.sdh{max-height:46vh;overflow-y:auto}
+@media (orientation:landscape) and (max-height:520px){
+  .sdh,.sdh.dense{--cw:17px;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 4px;max-height:calc(100vh - 172px)}
+  .sdp,.sdh.dense .sdp{padding:1px 4px}
+  .sdp .nm{font-size:.68rem}
+  .sdp .hn{font-size:.6rem}
+}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 
@@ -1364,7 +1382,7 @@ function newHand(){
   else log('SBはデッド（前のハンドのBBが抜けたため、このハンドはSBなし）','sys');
   const b=put(bbP,G.bb);bbP.lastAction=`BB ${fmt(b)}`;log(`${bbP.name}: BB ${fmt(b)}`);
   announce(`ハンド #${G.handNo} · ブラインド ${fmt(G.sb)}/${fmt(G.bb)}`);
-  G.currentBet=G.bb;G.minRaise=G.bb;G.street='preflop';
+  G.currentBet=G.bb;G.minRaise=G.bb;G.street='preflop';G.hist=[];G.aiCache={};alive.forEach(p=>aiStat(p).hands++);
   advance(G.bbI);
 }
 
@@ -1452,28 +1470,12 @@ function distribute(amount,winners){
   winners.forEach(w=>{const g=share+(rem>0?1:0);if(rem>0)rem--;w.chips+=g;w.won+=g});
 }
 
-/* ショーダウン：
-   - オールインがいる場合は全員オープン
-   - それ以外は、リバーで最後にベット/レイズした人から（いなければボタンの左から）時計回りに公開。
-     それまでに見せられた一番強い手に負けている人は自動でマック（伏せる） */
+/* ショーダウン：残っている全員の手札を公開する（負けた人も伏せない） */
 function showdown(){
   G.street='showdown';G.showdown=true;G.cur=-1;
   const live=G.players.filter(p=>!p.out&&!p.folded);
   live.forEach(p=>{p.best=best(p.hand.concat(G.board))});
-  if(G.tabled||live.some(p=>p.allin)){
-    live.forEach(p=>{p.shown=true;log(`${p.name}: ${cardsTxt(p.hand)} → ${p.best.name}`)});
-  }else{
-    let idx=G.lastAggr>=0&&live.includes(G.players[G.lastAggr])?G.lastAggr:nextIdx(G.dealer,q=>!q.out&&!q.folded);
-    let top=null;
-    for(let k=0;k<live.length;k++){
-      const p=G.players[idx];
-      if(!top||cmp(p.best.score,top)>=0){
-        p.shown=true;if(!top||cmp(p.best.score,top)>0)top=p.best.score;
-        log(`${p.name}: ${cardsTxt(p.hand)} → ${p.best.name}`);
-      }else{p.mucked=true;p.lastAction='マック';log(`${p.name}: マック（負けている手札を伏せました）`)}
-      idx=nextIdx(idx,q=>!q.out&&!q.folded);
-    }
-  }
+  live.forEach(p=>{p.shown=true;log(`${p.name}: ${cardsTxt(p.hand)} → ${p.best.name}`)});
   const pots=computePots();
   G.potResults=[];
   pots.forEach((pot,k)=>{
@@ -1510,6 +1512,7 @@ function act(type,to){
   const p=G.players[G.cur];if(!p||G.phase!=='play')return;
   const toCall=Math.max(0,G.currentBet-p.bet);
   if(type==='raise'&&(to==null||to<=G.currentBet||!raiseBounds(p)))type='call';
+  if(type==='raise'){const rb=raiseBounds(p);aiNote(p,type,Math.max(rb.min,Math.min(to,rb.max)))}else aiNote(p,type);
   if(type==='fold'){p.folded=true;p.lastAction='フォールド'}
   else if(type==='call'){
     const amt=put(p,toCall);
@@ -1548,24 +1551,223 @@ function raiseBounds(p){
   return{min,max,toCall};
 }
 
+/* CPU：GTOに近づける打ち方（完全な解ではなく、理論の考え方を組み合わせた近似）
+   - 見てよいのは自分の手札・場のカード・全員の公開アクションだけ。他の人の手札は見ない
+   - プリフロップ：ポジションと持ちチップごとのレンジを、境目は確率で混ぜて打つ
+   - フロップ以降：相手のアクションとベット額からレンジを絞り、そのレンジに対する勝率で判断する
+   - ブラフはベット額に見合う割合、コールは最低防衛頻度（MDF）を基準にする */
+const AI_RANK='AA KK QQ AKs AQs JJ AKo AJs TT ATs AQo 99 A9s AJo 88 ATo KJs A8s KQs A5s 77 A7s A6s A4s A9o KTs 66 A2s KQo A3s K9s A8o 55 KJo 44 QJs A7o JTs 33 QTs A5o A6o KTo A4o A2o QJo QTo A3o K9o K8s K7s K6s 22 K5s Q9s 98s T9s K4s 87s J9s Q8s K3s JTo 65s K6o K2s J9o Q7s T8s K8o 76s T7s J8s 97s Q9o Q5s 86s K7o Q4s J7s 85s Q6s K5o Q3s 53s J5s J6s J3s 64s K4o K2o 54s 75s T8o Q8o T6s J4s Q2s 95s 43s 74s T9o 32s T4s T5s 96s 73s K3o 98o 83s 42s T2s J2s T3s 63s J8o 94s 76o 52s Q7o Q5o 54o 87o 75o 62s 82s J7o 84s Q6o Q4o Q3o 93s 72s 97o T6o 86o 65o J6o 92s J5o J4o Q2o T7o 96o 85o J3o 64o T5o J2o 43o 53o T4o 95o 93o 63o T2o 52o 74o 82o 73o 84o 72o T3o 92o 42o 62o 83o 32o 94o'.split(' ');
+const AI_PCT=(()=>{const m={};let c=0;for(const h of AI_RANK){const n=h.length===2?6:h[2]==='s'?4:12;c+=n;m[h]=(c-n/2)/13.26}return m})();
+const RCH=r=>'..23456789TJQKA'[r];
+const handPct=(a,b)=>{const hi=Math.max(a.r,b.r),lo=Math.min(a.r,b.r);return AI_PCT[RCH(hi)+RCH(lo)+(hi===lo?'':a.s===b.s?'s':'o')]};
+const lim=(x,a,b)=>Math.max(a,Math.min(b,x));
+const AI_C=(()=>{const d=newDeck(),out=[];for(let i=0;i<52;i++)for(let j=i+1;j<52;j++)out.push({a:d[i],b:d[j],ka:key(d[i]),kb:key(d[j]),pct:handPct(d[i],d[j])});return out})();
+const AI_IX=(()=>{const m={};AI_C.forEach((c,i)=>{m[c.ka+c.kb]=i;m[c.kb+c.ka]=i});return m})();
+/* レンジの幅 w% の境目は、はっきり分けず確率で混ぜる */
+const inRange=(pct,w,e)=>lim((w+e-pct)/(2*e),0,1);
+const aiOpen=(k,n)=>n<=2?80:[0,42,46,28,21,17,14,12,11][k]||9;
+const aiPush=(k,n,eff)=>n<=2?lim(70*(10/eff),45,100):lim(([0,62,46,32,25,20,16,13,11][k]||9)*Math.pow(10/eff,.8),5,100);
+
+function aiNote(p,type,to){
+  if(!G.hist)G.hist=[];
+  const toCall=Math.max(0,G.currentBet-p.bet),pot=potG(),pre=G.street==='preflop';
+  const t=type==='fold'?'fold':type==='raise'?'raise':toCall>0?'call':'check';
+  G.hist.push({id:p.id,st:G.street,bl:G.board.length,t,to:to||0,pot,call:toCall,
+    lv:G.hist.filter(h=>h.st===G.street&&h.t==='raise').length,
+    size:t==='raise'?(to-G.currentBet)/Math.max(pot+toCall,1):0,behind:pre?aiBehind(p):0,bb:G.bb,live:G.players.filter(q=>!q.out).length});
+  if(pre&&(t==='call'||t==='raise')&&!G.hist.slice(0,-1).some(h=>h.id===p.id&&h.st==='preflop'&&(h.t==='call'||h.t==='raise'))){const s=aiStat(p);s.vp++}
+}
+function aiStat(p){G.aiS=G.aiS||{};return G.aiS[p.id]=G.aiS[p.id]||{hands:0,vp:0}}
+/* プリフロップで、自分のあとにBBまで何人残っているか */
+function aiBehind(p){if(p.id===G.bbI)return 0;let k=0,i=p.id;do{i=nextIdx(i,q=>!q.out);k++}while(i!==G.bbI&&k<30);return k}
+
+/* 場ごとに、全組み合わせの役の強さを 0〜1 の順位にする（dはドローの有無） */
+function aiBoard(board){
+  const id=board.map(key).join();G.aiCache=G.aiCache||{};
+  if(G.aiCache[id])return G.aiCache[id];
+  const used=new Set(board.map(key)),h=new Float64Array(AI_C.length).fill(-1),v=new Float64Array(AI_C.length),d=new Uint8Array(AI_C.length),list=[];
+  const count={};board.forEach(c=>count[c.s]=(count[c.s]||0)+1);
+  const straight4=rs=>{for(let t=2;t<=11;t++){let n=0;for(let x=t;x<t+4;x++)if(rs.has(x))n++;if(n===4)return true}return false};
+  const bs=new Set(board.map(c=>c.r)),base=straight4(bs);
+  AI_C.forEach((c,i)=>{
+    if(used.has(c.ka)||used.has(c.kb))return;
+    const s=best([c.a,c.b].concat(board)).score;
+    v[i]=s.reduce((x,y)=>x*15+y,0)*Math.pow(15,6-s.length);list.push({i,v:v[i]});
+    if(board.length<5){
+      const fd=[c.a,c.b].some(x=>(count[x.s]||0)+(c.a.s===c.b.s?1:0)+1>=4&&(count[x.s]||0)<4);
+      const sd=!base&&straight4(new Set([...bs,c.a.r,c.b.r]));
+      if(fd||sd)d[i]=1;
+    }
+  });
+  list.sort((x,y)=>x.v-y.v);
+  for(let a=0;a<list.length;){let b=a;while(b<list.length&&list[b].v===list[a].v)b++;const r=(a+b)/2/list.length;for(let k=a;k<b;k++)h[list[k].i]=r;a=b}
+  return G.aiCache[id]={h,v,d};
+}
+
+/* 公開されたアクションから、その人が持っていそうな手の重みを出す */
+function aiRange(p){
+  const w=new Float64Array(AI_C.length).fill(1),st=aiStat(p);
+  const loose=st.hands>=12?lim((st.vp/st.hands)/.24,.75,1.6):1;
+  for(const h of (G.hist||[])){
+    if(h.id!==p.id||h.t==='fold')continue;
+    if(h.st==='preflop'){
+      let wid=0,cap=0,top=0;
+      if(h.t==='raise'){
+        const bbs=h.to/h.bb;
+        if(h.lv===0)wid=bbs<=15&&bbs>=8?aiPush(h.behind,h.live,bbs):aiOpen(h.behind,h.live)*Math.pow(2.5/Math.max(bbs,1.5),.5)*loose;
+        else wid=(h.lv===1?9:h.lv===2?3.5:2)*loose;
+      }else if(h.t==='call'){cap=(h.lv===0?45:h.lv===1?(p.id===G.bbI?55:35):h.lv===2?12:4)*loose;top=h.lv===0?8:cap*.12}
+      else if(h.t==='check'){top=8;cap=100}
+      else continue;
+      for(let i=0;i<w.length;i++){
+        const x=AI_C[i].pct;
+        w[i]*=wid?inRange(x,wid,wid*.15)+.015:x>cap?.02:x<top?.35:1;
+      }
+      continue;
+    }
+    const B=aiBoard(G.board.slice(0,h.bl));
+    const vt=(h.t==='raise'?.72+.1*Math.min(h.size,1.5):0)+(h.lv>0?.06:0),ct=.4+.15*Math.min(h.call/Math.max(h.pot,1),1);
+    for(let i=0;i<w.length;i++){
+      const v=B.h[i],dr=B.d[i];if(v<0)continue;
+      w[i]*=h.t==='raise'?(v>=vt?1:v>=vt-.1?.4:dr?.55:v<.3?.2:.08)
+        :h.t==='call'?(v>=.93?.5:v>=ct||dr?1:.08)
+        :(v>=.9?.3:1);
+    }
+  }
+  return w;
+}
+
+/* 相手のレンジを相手にした勝率 */
+function aiEquity(p,opps,board,iters){
+  const known=new Set([...p.hand,...board].map(key));
+  const sp=opps.map(q=>{const w=aiRange(q),cum=new Float64Array(w.length);let s=0;for(let i=0;i<w.length;i++){const c=AI_C[i];if(!known.has(c.ka)&&!known.has(c.kb))s+=w[i];cum[i]=s}return{cum,s}});
+  const deck=newDeck().filter(c=>!known.has(key(c)));
+  const need=5-board.length,B=need?null:aiBoard(board),mine=B?B.v[AI_IX[key(p.hand[0])+key(p.hand[1])]]:0;let win=0,done=0;
+  for(let it=0;it<iters;it++){
+    const used=new Set(),hs=[];let ok=true;
+    for(const o of sp){
+      let got=null;
+      for(let t=0;t<25&&!got;t++){
+        const x=Math.random()*o.s;let a=0,b=o.cum.length-1;
+        while(a<b){const m=(a+b)>>1;if(o.cum[m]<x)a=m+1;else b=m}
+        const c=AI_C[a];if(!known.has(c.ka)&&!known.has(c.kb)&&!used.has(c.ka)&&!used.has(c.kb))got=c;
+      }
+      if(!got){ok=false;break}
+      used.add(got.ka);used.add(got.kb);hs.push(got);
+    }
+    if(!ok)continue;
+    if(B){ // リバーは計算済みの強さを比べるだけで済む
+      let beat=false,ties=0;
+      for(const c of hs){const v=B.v[AI_IX[c.ka+c.kb]];if(v>mine){beat=true;break}if(v===mine)ties++}
+      done++;if(!beat)win+=1/(ties+1);
+      continue;
+    }
+    const b=board.slice();
+    for(let i=0;b.length<board.length+need;i++){const j=i+(Math.random()*(deck.length-i)|0);[deck[i],deck[j]]=[deck[j],deck[i]];if(!used.has(key(deck[i])))b.push(deck[i])}
+    const me=best(p.hand.concat(b)).score;
+    let beat=false,ties=0;
+    for(const c of hs){const r=cmp(best([c.a,c.b].concat(b)).score,me);if(r>0){beat=true;break}if(r===0)ties++}
+    done++;if(!beat)win+=1/(ties+1);
+  }
+  return done?win/done:.5;
+}
+const aiIters=n=>n>=4?70:n>=2?130:220;
+function aiTo(p,rb,to){
+  to=Math.round(to/G.sb)*G.sb;
+  const left=p.bet+p.chips-to; // 少しだけ残るならオールインにする
+  if(left<(to-p.bet)*.5)return rb.max;
+  return lim(to,rb.min,rb.max);
+}
+const aiEff=(p,opps)=>Math.min(p.chips+p.bet,Math.max(1,...opps.map(q=>q.chips+q.bet)));
+
+function aiPre(p,rb,toCall){
+  const c1=p.hand[0],c2=p.hand[1],pct=handPct(c1,c2),bb=G.bb,pot=potG();
+  const hist=(G.hist||[]).filter(h=>h.st==='preflop'),raises=hist.filter(h=>h.t==='raise');
+  const lv=raises.length,limpers=hist.filter(h=>h.t==='call'&&h.lv===0).length;
+  const k=aiBehind(p),n=G.players.filter(q=>!q.out).length,isBB=p.id===G.bbI;
+  const live=G.players.filter(q=>q!==p&&!q.out&&!q.folded);
+  const eff=aiEff(p,live)/bb,hit=(w,e)=>Math.random()<inRange(pct,w,e);
+  const raise=to=>rb?{t:'raise',to:aiTo(p,rb,to)}:{t:'call'};
+  const pass=()=>toCall>0?{t:'fold'}:{t:'call'};
+  if(lv===0){
+    const w=aiOpen(k,n);
+    if(isBB)return rb&&hit(limpers?10:14,2)?raise((3.5+limpers*1.5)*bb):{t:'call'};
+    if(eff<=12)return rb&&hit(aiPush(k,n,eff),2)?{t:'raise',to:rb.max}:toCall<=bb/2&&hit(70,8)?{t:'call'}:pass();
+    if(limpers){
+      if(hit(w*.55,1.5))return raise((3.5+limpers)*bb);
+      return hit(w,3)?{t:'call'}:pass();
+    }
+    if(hit(w,Math.max(1.5,w*.12)))return raise((n<=2?2.3:k<=1?3:eff<25?2.1:2.5)*bb);
+    return k===1&&hit(w+20,6)?{t:'call'}:pass();
+  }
+  const last=raises[lv-1],agg=G.players[last.id],sum=aiRange(agg).reduce((s,x)=>s+x,0),vw=sum/AI_C.length*100;
+  const ip=seatOrder(p)>seatOrder(agg),odds=toCall/(pot+toCall),commit=toCall>=p.chips*.5;
+  const valW=lv===1?lim(vw*.3,2.5,12):lv===2?lim(vw*.35,1.6,4.5):1.6;
+  const short=eff<=25,cb=G.currentBet;
+  const nextTo=lv===1?(ip?3:4)*cb+limpers*bb:lv===2?2.3*cb:rb?rb.max:0;
+  if(rb&&hit(valW,.6))return short||lv>=3?{t:'raise',to:rb.max}:raise(nextTo);
+  const suited=c1.s===c2.s,lo=Math.min(c1.r,c2.r),hi=Math.max(c1.r,c2.r);
+  if(rb&&!short&&lv<=2&&suited&&((hi===14&&lo<=5)||(hi-lo===1&&hi>=6&&hi<=11))&&Math.random()<(lv===1?.32:.12)*lim(vw/15,.4,1))return raise(nextTo);
+  const opps=live.filter(q=>hist.some(h=>h.id===q.id&&(h.t==='call'||h.t==='raise')));
+  if(!isBB&&!commit&&pct>Math.max(vw*.9,8)&&!(c1.r===c2.r&&toCall<=eff*bb*.06))return pass();
+  const eq=aiEquity(p,opps.length?opps:live,[],aiIters(opps.length));
+  let R=commit?1:isBB?.92:p.id===G.sbI?.75:ip?.88:.78;
+  if(k>0&&!commit)R*=.93;
+  return eq*R>=odds+(Math.random()-.5)*.02?{t:'call'}:pass();
+}
+
+function aiPost(p,rb,toCall){
+  const board=G.board,B=aiBoard(board),ix=AI_IX[key(p.hand[0])+key(p.hand[1])],hv=B.h[ix],draw=!!B.d[ix];
+  const opps=G.players.filter(q=>q!==p&&!q.out&&!q.folded),n=opps.length,pot=potG();
+  const st=G.street,left={flop:2,turn:1,river:0}[st],eff=aiEff(p,opps)-p.total-p.bet+p.bet;
+  const eq=aiEquity(p,opps,board,aiIters(n));
+  const ip=opps.every(q=>seatOrder(q)<seatOrder(p));
+  const mine=aiRange(p);let tot=0,val=0,air=0,better=0;
+  const vLine=st==='river'?.75:.72,aLine=st==='river'?.4:.3;
+  for(let i=0;i<mine.length;i++){
+    const v=B.h[i];if(v<0)continue;
+    const m=mine[i];tot+=m;if(v>=vLine)val+=m;else if(v<aLine||B.d[i])air+=m;if(v>hv)better+=m;
+  }
+  const raise=to=>({t:'raise',to:aiTo(p,rb,to)});
+  const rs=board.map(c=>c.r).sort((a,b)=>b-a),suits={};board.forEach(c=>suits[c.s]=(suits[c.s]||0)+1);
+  const wet=(Math.max(...Object.values(suits))>=2?.5:0)+(rs[0]-rs[2]<=4?.5:0);
+  if(toCall===0){
+    const hist=G.hist||[],lastR=[...hist].reverse().find(h=>h.t==='raise'&&h.st!==st);
+    const aggressor=!!lastR&&lastR.id===p.id;
+    const polar=eq>=.85||eq<.35;
+    let s=st==='river'?(polar?.75:.5):st==='turn'?.66:wet>=.5?.66:.33;
+    if(eq>=.75&&left>0&&eff>0){const g=(Math.pow((2*eff+pot)/pot,1/(left+1))-1)/2;s=lim(g,s,1.2)}
+    const vt=(st==='river'?.62:.58)+.05*(n-1);
+    const betTo=Math.max(rb?rb.min:0,pot*s);
+    if(!rb)return{t:'call'};
+    if(eq>=vt&&Math.random()<(eq>=.9&&wet<.5?.65:ip?.95:.85))return raise(betTo);
+    /* ブラフの割合：ベットの中のブラフが s/(1+2s) になるように、バリューの量から逆算する */
+    const ratio=s/(1+s),mult=st==='river'?1:st==='turn'?1.6:2.4;
+    let f=lim(val*ratio*mult/Math.max(air,1)/(n*n),0,.9);
+    if(!aggressor)f*=.35;
+    if(ip&&hist.filter(h=>h.st===st).every(h=>h.t==='check'))f*=1.3;
+    if(draw)f=Math.min(.9,f*1.5);
+    if((draw||eq<.4)&&Math.random()<f)return raise(betTo);
+    return{t:'call'};
+  }
+  const odds=toCall/(pot+toCall),mdf=1-Math.min(1,toCall/Math.max(pot,1)),tile=better/Math.max(tot,1);
+  const R=(st==='river'?1:st==='turn'?(ip?.97:.92):(ip?.95:.88))+(draw&&left>0&&eff>toCall*3?.05:0);
+  if(rb){
+    if(eq>=.8+.05*(n-1)&&Math.random()<(wet>=.5?.75:.5))return raise(G.currentBet+(pot+toCall)*.7);
+    if(draw&&left>0&&toCall<eff*.25&&Math.random()<.18/n)return raise(G.currentBet+(pot+toCall)*.7);
+  }
+  if(eq*R>=odds+(Math.random()-.5)*.02)return{t:'call'};
+  if(n===1&&tile<=mdf*.9&&eq*R>=odds*.7)return{t:'call'};
+  return{t:'fold'};
+}
+
 function cpuAct(){
   const p=G.players[G.cur];if(!p||p.kind!=='cpu'||G.phase!=='play')return;
-  const toCall=Math.max(0,G.currentBet-p.bet);
-  const pot=potG();
-  const nOpp=G.players.filter(q=>q!==p&&!q.out&&!q.folded).length;
-  const eq=equity(p.hand,G.board,nOpp,nOpp>5?90:160);
-  const strength=eq*(nOpp+1); // 1.0 = 平均的な手
-  const odds=toCall>0?toCall/(pot+toCall):0;
-  const r=Math.random();
-  const rb=raiseBounds(p);
-  if(rb&&((strength>1.8&&r<0.7)||(strength>1.35&&r<0.25)||r<0.04)){
-    let to=G.currentBet+Math.max(G.minRaise,Math.round(pot*(0.5+Math.random()*0.6)/G.sb)*G.sb);
-    if(strength>2.6&&Math.random()<0.25)to=rb.max;
-    return act('raise',Math.max(rb.min,Math.min(to,rb.max)));
-  }
-  if(toCall===0)return act('call');
-  if(eq>=odds*0.95||(toCall<=G.bb&&strength>0.75))return act('call');
-  return act('fold');
+  const toCall=Math.max(0,G.currentBet-p.bet),rb=raiseBounds(p);
+  let d;
+  try{d=G.street==='preflop'?aiPre(p,rb,toCall):aiPost(p,rb,toCall)}
+  catch(e){d={t:toCall>0?'fold':'call'}}
+  act(d.t,d.to);
 }
 
 /* リバイ：チップ0で今のハンドに参加していない人だけ。BBを飛ばしていればBBが回ってくるまで待つ */
@@ -1775,6 +1977,13 @@ const ICON={
   coins:'<svg class="ai" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v4c0 1.700 3.600 3 8 3s8-1.300 8-3V6M4 10v4c0 1.700 3.600 3 8 3s8-1.300 8-3v-4M4 14v4c0 1.700 3.600 3 8 3s8-1.300 8-3v-4"/></svg>',
   up:'<svg class="ai" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linejoin="round"><path d="M4 12 12 4l8 8M6.500 20 12 14.500 17.500 20"/></svg>',
 };
+/* ショーダウンで公開された他の人の手札 */
+function sdHandsHTML(V,i){
+  if(!V.showdown)return'';
+  const ps=V.players.filter((p,j)=>j!==i&&!p.out&&!p.folded&&p.show);
+  if(!ps.length)return'';
+  return`<div class="sdh ${ps.length>6?'dense':''}">${ps.map(p=>`<div class="sdp ${p.won>0?'win':''}"><div class="who"><span class="nm">${esc(p.name)}</span><span class="hn">${esc(p.bestName||'')}</span></div><div class="cs">${p.show.map(c=>cardHTML(c,V)).join('')}</div></div>`).join('')}</div>`;
+}
 function dockHTML(V,i){
   const host=APP.role==='host',player=APP.role==='player';
   const alive=V.players.filter(p=>p.chips>0&&!p.kicked).length;
@@ -1784,13 +1993,13 @@ function dockHTML(V,i){
     const head=V.rebuy
       ?`<div class="w">チップが残っているのは <b>${esc(ch?ch.name:'—')}</b> だけ</div><div class="status">リバイすると続けられます</div>`
       :`<div class="w">優勝 <b>${esc(ch?ch.name:'—')}</b></div><div class="status">${V.handNo}ハンドで決着</div>`;
-    return`<div class="results">${head}</div>
+    return`${sdHandsHTML(V,i)}<div class="results">${head}</div>
       <div class="actions">${rbs}${player?'<div class="status" style="grid-column:1/-1">ホストの操作を待っています</div>'
         :`${alive>=2?'<button class="abtn wide" id="next">次のハンドへ</button>':''}<button class="abtn ${alive>=2?'quiet':'wide'}" id="again">${host?'ロビーに戻る':'新しいゲーム'}</button>`}</div>`;
   }
   if(V.phase==='done'){
     const prs=V.potResults&&V.potResults.length?V.potResults:V.players.filter(p=>p.won>0).map(w=>({label:'ポット',amount:w.won,winners:[w.name],hand:w.bestName}));
-    return`<div class="results">${prs.map(r=>`<div class="w"><span class="plabel">${esc(r.label)} ${fmt(r.amount)}</span> → <b>${r.winners.map(esc).join('・')}</b>${r.split?'（分配）':''} · ${r.fold?'全員フォールド':esc(r.hand||'')}</div>`).join('')}</div>
+    return`${sdHandsHTML(V,i)}<div class="results">${prs.map(r=>`<div class="w"><span class="plabel">${esc(r.label)} ${fmt(r.amount)}</span> → <b>${r.winners.map(esc).join('・')}</b>${r.split?'（分配）':''} · ${r.fold?'全員フォールド':esc(r.hand||'')}</div>`).join('')}</div>
       <div class="actions">${rbs}${player?'<div class="status" style="grid-column:1/-1">ホストが次のハンドを配るのを待っています</div>':'<button class="abtn wide" id="next">次のハンドへ</button>'}</div>`;
   }
   const p=V.cur>=0?V.players[V.cur]:null;
