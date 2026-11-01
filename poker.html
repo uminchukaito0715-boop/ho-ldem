@@ -212,9 +212,10 @@ button:active:not(:disabled){transform:translateY(1px) scale(.98)}
 .presets{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 .preset{border:1.5px solid var(--line);border-radius:12px;padding:12px 0;font-size:.78rem;font-weight:700;color:var(--muted);background:rgba(0,0,0,.2)}
 .preset.on{border-color:var(--gold);color:var(--gold-hi);background:rgba(217,180,90,.12)}
-.stepline{display:flex;align-items:center;gap:12px}
+.nudge{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.nudge button{height:46px;border-radius:12px;background:var(--panel);border:1px solid var(--line);color:var(--gold-hi);font-family:var(--f-num);font-size:.95rem}
 .round{width:50px;height:50px;border-radius:50%;background:var(--panel);border:1px solid var(--line);font-size:1.4rem;flex:none;color:var(--gold)}
-input[type=range]{flex:1;min-width:0;accent-color:var(--gold);height:36px}
+input[type=range]{width:100%;flex:none;min-width:0;accent-color:var(--gold);height:36px}
 .confirm{height:58px;border-radius:16px;background:linear-gradient(180deg,var(--gold-hi),var(--gold) 45%,#a57d2a);color:#2a1a04;font-weight:700;font-size:1.05rem;border:1px solid var(--gold-hi);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 4px 12px rgba(0,0,0,.4)}
 .confirm:disabled{opacity:.35;cursor:default}
 .plain{height:50px;border-radius:14px;background:var(--panel);border:1px solid var(--line);font-weight:700}
@@ -338,11 +339,57 @@ details.rules summary small{font-weight:400;color:var(--muted);margin-left:6px;f
   .big-amt{font-size:1.8rem}
   .big-amt small{margin-top:2px}
   .preset{padding:8px 0}
-  .round{width:40px;height:40px}
+  .nudge button{height:36px}
   .confirm{height:46px}
   .cover{gap:6px;padding:8px 16px}
   .cover h2{font-size:1.3rem}
   .cover .backs{--cw:42px;margin:2px 0}
+}
+
+/* ---- ホーム画面：どの画面でも1画面に収める ---- */
+.home{justify-content:safe center}
+.home-form{display:flex;flex-direction:column;gap:14px;min-width:0}
+.home-fields{display:flex;flex-direction:column;gap:14px}
+@media (orientation:portrait) and (max-height:700px){
+  .home{gap:10px;padding-block:8px}
+  .home .hero{padding-top:0;gap:3px}
+  .home .fan{height:56px;--cw:36px;margin-bottom:0}
+  .home .hero h1{font-size:2.1rem}
+  .home .hero h1 small{margin-top:4px;font-size:.78rem}
+  .home-form,.home-fields{gap:9px}
+  .home .field input{padding:10px 12px}
+  .home .big{height:56px}
+  .home .wide-btn{height:46px}
+}
+@media (orientation:portrait) and (max-height:600px){
+  .home .suits{display:none}
+}
+@media (orientation:portrait) and (min-width:700px){
+  #app[data-screen="home"]{max-width:600px}
+}
+@media (orientation:landscape) and (min-width:560px){
+  #app[data-screen="home"]{max-width:1040px;padding-inline:env(safe-area-inset-left,0px) env(safe-area-inset-right,0px)}
+  .home{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(20px,5vw,64px);align-items:center;align-content:center}
+}
+@media (orientation:landscape) and (min-width:560px) and (min-height:600px){
+  .home .hero h1{font-size:clamp(3rem,6vw,4.6rem)}
+  .home .hero h1 small{font-size:1.05rem}
+  .home .fan{height:128px;--cw:84px;margin-bottom:10px}
+}
+@media (orientation:landscape) and (max-height:480px){
+  .home{padding-block:6px}
+  .home .hero{padding-top:0;gap:3px}
+  .home .fan{height:62px;--cw:40px;margin-bottom:0}
+  .home .hero h1{font-size:2rem}
+  .home .hero h1 small{margin-top:4px;font-size:.74rem}
+  .home .hero p{font-size:.72rem}
+  .home-form{gap:7px}
+  .home-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .home .field{gap:2px}
+  .home .field input{padding:8px 10px;font-size:16px}
+  .home .big{height:48px}
+  .home .note{font-size:.7rem;line-height:1.4}
+  .home .wide-btn{height:40px}
 }
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
@@ -443,7 +490,13 @@ const claudeNet={
   watchTable:(cb,err)=>caps.db.doc(tablePath()).onSnapshot(s=>cb(s.exists?s.data():null),err),
   onPeers:(cb,err)=>caps.room.onPeers(ch=>cb(ch.peers),err),
   onConnection:cb=>caps.room.onConnection(cb),
-  presence:p=>NET.presence(p),
+  presence:p=>caps.room.presence(p),
+  async hostAlive(pid){
+    const un=caps.room.onPeers(()=>{});
+    await new Promise(r=>setTimeout(r,2000));
+    const on=caps.room.peers().some(p=>p.presence&&p.presence.host&&p.presence.pid===pid);
+    un();return on;
+  },
   close(){}
 };
 function loadMqtt(){
@@ -474,6 +527,10 @@ function mqttNet(){
       c.on('connect',()=>{c.subscribe([base+'/state',base+'/p/+'],{qos:1});if(Object.keys(pres).length)pub(me,JSON.stringify(pres)).catch(()=>{});connCb&&connCb(true)});
       c.on('close',()=>connCb&&connCb(false));
       await new Promise((res,rej)=>{const t=setTimeout(()=>rej(new Error('timeout')),12000);c.once('connect',()=>{clearTimeout(t);res()})});
+    },
+    async hostAlive(pid){
+      await new Promise(r=>setTimeout(r,1200)); // 接続中の人の情報が届くのを待つ
+      return [...peers.values()].some(o=>o&&o.host&&o.pid===pid);
     },
     async getTable(){if(table===undefined)await new Promise(r=>{waiters.push(r);setTimeout(r,2500)});return table||null},
     setTable:d=>pub(base+'/state',JSON.stringify(d)),
@@ -687,15 +744,18 @@ function rulesHTML(){
 function renderHome(){
   const ok=onlineOK();
   $('#app').innerHTML=`
-  <div class="scroll">
+  <div class="scroll home">
     <div class="hero">
       <div class="fan">${[['14s',-16,-34],['14h',0,0],['13d',16,34]].map(([c,r,x])=>cardHTML(c,null,'lg',`transform:translateX(calc(-50% + ${x}px)) rotate(${r}deg)`)).join('')}</div>
       <h1>HOLD'EM<small>ホールデム・テーブル</small></h1>
       <div class="suits">♠<i>♥</i>♣<i>♦</i></div>
       <p>ノーリミット・テキサスホールデム · 2〜${MAXP}人</p>
     </div>
+    <div class="home-form">
+    <div class="home-fields">
     <label class="field"><span>あなたの名前</span><input type="text" id="h-name" maxlength="10" value="${esc(APP.name)}" placeholder="例：たろう" autocomplete="nickname"></label>
     <label class="field"><span>合言葉</span><input type="text" id="h-pass" maxlength="40" value="${esc(APP.pass)}" placeholder="例：さくら2026" autocomplete="off"></label>
+    </div>
     ${APP.err?`<p class="err">${esc(APP.err)}</p>`:''}
     <div class="pair">
       <button class="big gold" id="h-host" ${ok&&!APP.busy?'':'disabled'}>部屋を作る<small>ホストになる</small></button>
@@ -706,6 +766,7 @@ function renderHome(){
       :caps.ready?(window.claude?'このリンクでは、招待されてサインインしている人しかオンライン対戦できません。だれでも遊べる版のURLを開いてください。':'このブラウザではオンライン対戦が使えません（https のページで開いてください）。'):'接続を準備しています…'}</p>
     <div class="or">または</div>
     <button class="wide-btn" id="h-local">この端末だけで遊ぶ（CPU・回し遊び）</button>
+    </div>
   </div>`;
   const grab=()=>{APP.name=$('#h-name').value.trim().slice(0,10);APP.pass=$('#h-pass').value.trim();store.set('holdem-name',APP.name)};
   const go=f=>()=>{grab();if(!APP.name){APP.err='名前を入れてください';return renderHome()}if(APP.pass.length<2){APP.err='合言葉を2文字以上で入れてください';return renderHome()}APP.err='';f()};
@@ -725,9 +786,18 @@ async function hostRoom(){
   try{
     await prepare();
     const S=await NET.getTable();
+    // 前の部屋が残っていても、ホストがつながっていなければ作り直せる
     if(S&&S.hostPid&&S.hostPid!==APP.pid&&S.status!=='over'&&S.status!=='closed'&&Date.now()-(S.updatedAt||0)<6*3600e3){
-      APP.busy=false;APP.err='この合言葉の部屋はもうあります。「部屋に入る」を押すか、別の合言葉にしてください。';renderHome();return;
+      if(await NET.hostAlive(S.hostPid)){
+        APP.busy=false;APP.err='この合言葉の部屋はホストがいて使用中です。「部屋に入る」を押すか、別の合言葉にしてください。';renderHome();return;
+      }
+      if(S.status==='playing'&&APP.takeover!==APP.hash){ // 進行中のゲームを消してしまわないよう、1回確認する
+        APP.takeover=APP.hash;APP.busy=false;
+        APP.err='この合言葉の部屋にはゲームが残っていますが、ホストがいません。もう一度「部屋を作る」を押すと、前のゲームを終了して新しく作ります（切れた直後なら1分ほどかかることがあります）。';
+        renderHome();return;
+      }
     }
+    APP.takeover=null;
     APP.role='host';APP.known={};APP.present=new Set();APP.lobbyCpus=[];G=null;
     if(S&&S.settings)Object.assign(setupCfg,S.settings);
     if(S&&S.hostPid===APP.pid&&S.status==='playing'){
@@ -872,6 +942,7 @@ function renderLobby(){
 }
 function lobbyWaitHTML(){
   if(!APP.S)return'部屋を探しています…（ホストが同じ合言葉で部屋を作ると自動で入れます）';
+  if(APP.hostHere===false)return'ホストがいません。ホストが戻るか、同じ合言葉で部屋を作り直すのを待っています…';
   if(APP.S.players&&!APP.S.players.some(p=>p.pid===APP.pid))return'参加者に追加されるのを待っています…';
   return'ホストのスタートを待っています…';
 }
@@ -1419,12 +1490,12 @@ function dockHTML(V,i){
     </div>`;
 }
 
-/* ベット額は50刻み（最小額とオールイン額だけは端数のまま選べる） */
-const STEP=50;
-function snapAmt(v,rb){
+/* スライダーと％ボタンは50刻み、微調整ボタンは10・50刻み（最小額とオールイン額だけは端数のまま選べる） */
+const STEP=50,FINE=10;
+function snapAmt(v,rb,step=STEP){
   if(v>=rb.max)return rb.max;
   if(v<=rb.min)return rb.min;
-  const s=Math.round(v/STEP)*STEP;
+  const s=Math.round(v/step)*step;
   return s<=rb.min?rb.min:s>=rb.max?rb.max:s;
 }
 function presetValues(V,rb){
@@ -1445,18 +1516,15 @@ function sheetHTML(V,i){
     if(!isMyTurn(V,i))return'';
     const rb=rbV(V,i);if(!rb)return'';
     const p=V.players[i];
-    APP.amt=snapAmt(APP.amt,rb);
+    APP.amt=snapAmt(APP.amt,rb,FINE);
     const pre=presetValues(V,rb);const label=V.currentBet===0?'ベット':'レイズ';
     return`<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-label="${label}額">
       <div class="grab"></div>
       <h3>${label}額（合計）</h3>
       <div class="big-amt" id="amt-v">${fmt(APP.amt)}<small>${APP.amt>=rb.max?'オールイン':`残り ${fmt(p.bet+p.chips-APP.amt)}`}</small></div>
       <div class="presets">${pre.map(([l,v])=>`<button class="preset ${v===APP.amt?'on':''}" data-v="${v}">${l}</button>`).join('')}</div>
-      <div class="stepline">
-        <button class="round" id="amt-m" aria-label="減らす">−</button>
-        <input type="range" id="amt-r" min="${rb.min}" max="${rb.max}" step="1" value="${APP.amt}" aria-label="額">
-        <button class="round" id="amt-p" aria-label="増やす">＋</button>
-      </div>
+      <input type="range" id="amt-r" min="${rb.min}" max="${rb.max}" step="1" value="${APP.amt}" aria-label="額">
+      <div class="nudge">${[-50,-10,10,50].map(d=>`<button data-d="${d}" aria-label="${Math.abs(d)}${d<0?"減らす":"増やす"}">${d<0?"−":"＋"}${Math.abs(d)}</button>`).join("")}</div>
       <button class="confirm" id="amt-ok">${fmt(APP.amt)} で${label}</button>
     </div></div>`;
   }
@@ -1668,9 +1736,9 @@ function fitSeats(){
 }
 addEventListener('resize',()=>{if(APP.screen==='game')fitSeats()});
 
-function setAmt(V,i,v){
+function setAmt(V,i,v,step=STEP){
   const rb=rbV(V,i);if(!rb)return;const p=V.players[i];
-  APP.amt=snapAmt(v,rb);
+  APP.amt=snapAmt(v,rb,step);
   const label=V.currentBet===0?'ベット':'レイズ';
   $('#amt-v').innerHTML=`${fmt(APP.amt)}<small>${APP.amt>=rb.max?'オールイン':`残り ${fmt(p.bet+p.chips-APP.amt)}`}</small>`;
   $('#amt-r').value=APP.amt;
@@ -1703,8 +1771,10 @@ function bindGame(V,i){
   if(APP.sheet==='raise'&&$('#amt-r')){
     $('#amt-r').oninput=e=>setAmt(V,i,+e.target.value);
     $$('.preset').forEach(b=>b.onclick=()=>{setAmt(V,i,+b.dataset.v);buzz(8)});
-    on('#amt-m',()=>{setAmt(V,i,Math.ceil(APP.amt/STEP)*STEP-STEP);buzz(6)});
-    on('#amt-p',()=>{setAmt(V,i,Math.floor(APP.amt/STEP)*STEP+STEP);buzz(6)});
+    $$('.nudge button').forEach(b=>b.onclick=()=>{
+      const d=+b.dataset.d,a=Math.abs(d);
+      setAmt(V,i,d>0?Math.floor(APP.amt/a)*a+a:Math.ceil(APP.amt/a)*a-a,FINE);buzz(6);
+    });
     on('#amt-ok',()=>doAction('raise',APP.amt));
   }
 }
