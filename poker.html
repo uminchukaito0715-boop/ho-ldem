@@ -769,7 +769,7 @@ html[data-scr="other"] #bgx{background:linear-gradient(180deg,rgba(6,5,4,.66),rg
 #app.oval[data-screen="game"] .felt-head{display:block}
 #app.oval[data-screen="game"] .felt-logo{display:flex}
 #app.oval[data-screen="game"] .mid .felt{margin:-10px -12px}
-#app.oval[data-screen="game"] .mid .pot{--pw:128px;font-size:.95rem}
+#app.oval[data-screen="game"] .mid .pot{--pw:calc(128px * var(--sz,1));font-size:calc(.95rem * var(--sz,1))}
 #app.oval[data-screen="game"] .board{--cw:min(9.5vw,48px)}
 #app.oval[data-screen="game"] .opps{position:absolute;inset:0;display:block;padding:0;overflow:visible;z-index:3;pointer-events:none;align-self:stretch;width:auto;max-width:none}
 @media (orientation:portrait){
@@ -820,7 +820,7 @@ html[data-scr="other"] #bgx{background:linear-gradient(180deg,rgba(6,5,4,.66),rg
 .oseat.winner .oplate{border-color:var(--gold-hi);box-shadow:0 0 0 1px var(--gold-hi),0 0 18px rgba(246,228,166,.9)}
 .oseat.folded{opacity:.45}
 .oseat.out{opacity:.25}
-#app.oval[data-screen="game"] .opps .oseat.hero{width:150px;z-index:2;transform:translate(-50%,-50%)}
+#app.oval[data-screen="game"] .opps .oseat.hero{width:150px;z-index:2;transform:translate(-50%,-50%) scale(var(--sz,1))}
 .oseat.hero .hole{display:flex;--cw:46px;margin-bottom:-12px;position:relative;z-index:1}
 .oseat.hero .hole .card:nth-child(1){transform:rotate(-6deg)}
 .oseat.hero .hole .card:nth-child(2){transform:rotate(6deg);margin-left:-6px}
@@ -832,11 +832,15 @@ html[data-scr="other"] #bgx{background:linear-gradient(180deg,rgba(6,5,4,.66),rg
 .oseat.hero .oact{font-size:.68rem}
 .ocrown{width:20px;height:20px;margin-bottom:-4px;background:var(--a-crown) center/contain no-repeat;position:relative;z-index:2}
 .felt-head{white-space:nowrap}
-/* 横画面のスマホ：9人でも席が重ならないよう、操作ボタンを縦に並べてテーブルの場所を広げる */
-@media (orientation:landscape) and (max-height:520px){
-  #app.oval[data-screen="game"]{grid-template-columns:minmax(0,1fr) 156px}
-  #app.oval[data-screen="game"] .dock{padding-left:4px}
+/* 横長の画面（スマホ横・パソコン）：操作ボタンは右端に縦1列で置き、残りの幅を全部テーブルに使う */
+@media (orientation:landscape){
+  #app.oval[data-screen="game"]{max-width:none;grid-template-columns:minmax(0,1fr) clamp(156px,15vw,220px);grid-template-rows:auto auto minmax(0,1fr) auto}
+  #app.oval[data-screen="game"] .mid{grid-column:1;grid-row:3/5;max-width:none}
+  #app.oval[data-screen="game"] .me{grid-column:2;grid-row:3;margin:4px 12px 0 0}
+  #app.oval[data-screen="game"] .dock{grid-column:2;grid-row:4;align-self:end;padding:6px 12px calc(10px + env(safe-area-inset-bottom,0px)) 4px;justify-content:flex-end}
   #app.oval[data-screen="game"] .actions{grid-template-columns:1fr}
+}
+@media (orientation:landscape) and (max-height:520px){
   #app.oval[data-screen="game"] .abtn{height:56px}
 }
 .opos{display:none;font-style:normal;color:var(--gold-hi)}
@@ -2532,22 +2536,31 @@ function layoutOval(){
   const box=$('#opps');if(!box)return;
   const W=box.clientWidth,H=box.clientHeight;
   const hero=box.querySelector('.oseat.hero'),seats=[...box.querySelectorAll('.oseat:not(.hero)')],m=seats.length;
-  // 幅が390pxより狭い画面だけ、ほかの人の席を画面幅に合わせて縮める
-  const sz=Math.min(1,W/390);box.style.setProperty('--sz',sz.toFixed(3));
+  // 幅が390pxより狭い画面では席を縮め、パソコンなど大きい画面では席・手札・場のカードを同じ比率のまま拡大する
+  const big=Math.min(2.2,Math.max(1,Math.min(W/600,H/440))),sz=Math.min(1,W/390)*big;box.style.setProperty('--sz',sz.toFixed(3));
   const sw=(seats[0]?seats[0].offsetWidth:92)*sz,sh=(seats[0]?seats[0].offsetHeight:64)*sz;
   const rx=Math.max(0,W/2-sw/2-2),ry=Math.max(0,H/2-sh/2-2),gap=hero?25:0;
   // 楕円（角を少し張り出させた形）の上に、席どうしの間隔が等しくなるように並べる
   const sp=v=>Math.sign(v)*Math.pow(Math.abs(v),.72);
   const P=d=>{const t=d*Math.PI/180;return[W/2+rx*sp(Math.cos(t)),H/2+ry*sp(Math.sin(t))]};
-  const d0=hero?90+gap:90,d1=hero?450-gap:450,N=720,pts=[],len=[0];
-  for(let k=0;k<=N;k++){pts.push(P(d0+(d1-d0)*k/N));if(k)len.push(len[k-1]+Math.hypot(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1]))}
-  seats.forEach((s,k)=>{
-    const want=len[N]*(hero?(k+1)/(m+1):(k+.5)/m);let q=0;while(q<N&&len[q]<want)q++;
-    s.style.left=pts[q][0]+'px';s.style.top=pts[q][1]+'px';
-  });
-  if(hero){hero.style.left=W/2+'px';hero.style.top=(H-hero.offsetHeight/2-2)+'px'}
+  const d0=hero?90+gap:90,d1=hero?450-gap:450,N=720,pts=[];
+  for(let k=0;k<=N;k++)pts.push(P(d0+(d1-d0)*k/N));
+  // 縦長のテーブルでは、場のカードを大きくできるよう、真ん中の高さ（±band）には席を置かない。
+  // 空けると席どうしが重なってしまう人数では、空ける幅を狭める
+  const hh0=hero?hero.offsetHeight*sz:sh,cy=(sh*.2+H-hh0*.3)/2;
+  const place=band=>{
+    const len=[0];
+    for(let k=1;k<=N;k++){const inBand=Math.abs(pts[k][1]-cy)<band;len.push(len[k-1]+(inBand?0:Math.hypot(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1])))}
+    return seats.map((s,k)=>{const want=len[N]*(hero?(k+1)/(m+1):(k+.5)/m);let q=0;while(q<N&&len[q]<want)q++;return pts[q]});
+  };
+  const rects=ps=>ps.map(([x,y])=>[x-sw/2,y-sh/2,x+sw/2,y+sh/2-14*sz]).concat(hero?[[W/2-hero.offsetWidth*sz/2,H-hh0-2+16*sz,W/2+hero.offsetWidth*sz/2,H]]:[]);
+  const clashes=ps=>{const r=rects(ps);let c=0;for(let a=0;a<r.length;a++)for(let b=a+1;b<r.length;b++)if(r[a][0]<r[b][2]-2&&r[b][0]<r[a][2]-2&&r[a][1]<r[b][3]-2&&r[b][1]<r[a][3]-2)c++;return c};
+  let ps=place(0);
+  if(H>W){const base=clashes(ps);for(const b of [110,95,80,65,50]){const t=place(b*sz);if(clashes(t)<=base){ps=t;break}}}
+  seats.forEach((s,k)=>{s.style.left=ps[k][0]+'px';s.style.top=ps[k][1]+'px'});
+  if(hero){hero.style.left=W/2+'px';hero.style.top=(H-hero.offsetHeight*sz/2-2)+'px'}
   // テーブルは席の中心を結んだ範囲いっぱいに広げ、席がテーブルの縁に乗るようにする
-  const rail=$('.mid .rail'),hh=hero?hero.offsetHeight:sh;
+  const rail=$('.mid .rail'),hh=hero?hero.offsetHeight*sz:sh;
   // テーブルはできるだけ大きく。席が縁に多少かぶるのはよしとする。場のカードはテーブルの幅に合わせる
   // 横長の場所では、自分の手札が場の表示にかぶらないよう、テーブルの下端を少し上げる
   const wide=W>H,side=Math.round(sw*(wide?.5:.45)),top=Math.round(wide?sh-30:sh*.2),bot=Math.round(wide?36:hh*.3);
@@ -2558,10 +2571,10 @@ function layoutOval(){
     // 場の表示（POT・場のカード・「フロップ」など）がどの席にも隠れないよう、
     // テーブルの中で席にかからない場所を探し、そこに入る一番大きいカードにして、表示をその場所へ寄せる
     const fTop=top+11,fBot=H-bot-11,pos=seats.map(s=>{const x=parseFloat(s.style.left),y=parseFloat(s.style.top);return[x,sw/2,y-sh/2,y+sh/2-14]});
-    if(hero)pos.push([W/2,hero.offsetWidth/2,H-hh-2+16,H]);
+    if(hero)pos.push([W/2,hero.offsetWidth*sz/2,H-hh-2+16*sz,H]);
     const box=(by,cw)=>[by-cw*.7-40,by+cw*.7,Math.max(5*cw+24,128)/2]; // 上にPOT、その下に場のカード
     const free=([t,b,hw])=>t>=fTop&&b<=fBot&&!pos.some(([x,sx,st,sb])=>Math.abs(x-W/2)<sx+hw+4&&st<b+4&&sb>t-4);
-    const mid=(fTop+fBot)/2;let cw=Math.max(24,Math.min(56,Math.floor((inner-4*6)/5))),pick=null;
+    const mid=(fTop+fBot)/2;let cw=Math.max(24,Math.min(Math.round(56*big),Math.floor((inner-4*6)/5))),pick=null;
     for(;cw>=24&&!pick;cw--){
       const tries=[];for(let by=fTop;by<=fBot;by+=3)tries.push(by);
       tries.sort((a,b)=>Math.abs(a-mid)-Math.abs(b-mid));
