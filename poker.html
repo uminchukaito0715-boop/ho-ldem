@@ -565,7 +565,7 @@ html[data-scr="home"] #bgx{background:var(--a-stacks) left -24px bottom -14px/cl
 .chip-ico{background-position:center!important;background-size:contain!important;background-repeat:no-repeat!important;background-color:transparent!important;box-shadow:none}
 .chip-ico::after{display:none}
 .tag.d{width:18px;height:18px;padding:0;font-size:0;background:var(--a-m-d) center/contain no-repeat!important;box-shadow:none}
-.pos.m-sb,.pos.m-bb{width:18px;height:18px;padding:0;border:0;font-size:0;border-radius:0;background:center/contain no-repeat}
+.pos.m-sb,.pos.m-bb{width:18px;height:18px;padding:0;border:0;font-size:0!important;border-radius:0;background:center/contain no-repeat}
 .pos.m-sb{background-image:var(--a-m-sb)}
 .pos.m-bb{background-image:var(--a-m-bb)}
 .opps.tiny .tag.d,.opps.tiny .pos.m-sb,.opps.tiny .pos.m-bb{width:14px;height:14px;padding:0}
@@ -746,6 +746,106 @@ html[data-scr="other"] #bgx{background:linear-gradient(180deg,rgba(6,5,4,.66),rg
 #app.tb .pots{padding:0}
 #app.tb .potpill{white-space:nowrap;font-size:.68rem;padding:1px 6px;gap:3px}
 #app.tb .potpill em,#app.tb .potpill small{white-space:nowrap}
+/* ---- ホーム：どの画面比率でも同じデザインを、画面に合わせて拡大縮小する ---- */
+#app[data-screen="home"]{max-width:none!important;width:100%;position:relative;overflow:hidden}
+#app .home{position:absolute;left:50%;top:50%;width:390px;height:auto;flex:none;display:flex!important;flex-direction:column;gap:10px!important;padding:16px!important;overflow:visible;transform:translate(-50%,-50%) scale(var(--hs,1))}
+#app .home .hero{padding-top:0!important;gap:3px!important}
+#app .home .logo-img{--lw:215px!important}
+#app .home .suits{display:block!important}
+#app .home .hero p{font-size:.68rem!important}
+#app .home .hero-cards{display:block!important;position:absolute;left:50%;top:0;width:499px!important;max-width:none;margin:0!important;transform:translateX(-50%);opacity:.3;z-index:0;pointer-events:none;-webkit-mask-image:linear-gradient(#000 45%,transparent 96%);mask-image:linear-gradient(#000 45%,transparent 96%)}
+#app .home .hero>*:not(.hero-cards),#app .home .home-form{position:relative;z-index:1}
+#app .home .home-form,#app .home .home-fields{display:flex!important;flex-direction:column;gap:9px!important}
+#app .home .field{gap:6px!important}
+#app .home .field input{padding:10px 12px!important;padding-left:44px!important;font-size:17px!important}
+#app .home .pair{grid-template-columns:1fr 1fr!important}
+#app .home .big{height:56px!important}
+#app .home .wide-btn{height:46px!important}
+#app .home .note{font-size:.8rem!important;line-height:1.6!important}
+/* ---- 9人以下：楕円テーブル ---- */
+#app.oval[data-screen="game"] .mid{position:relative;flex:1 1 0;min-height:0;width:100%;max-width:900px;margin-inline:auto;align-self:stretch}
+#app.oval[data-screen="game"] .mid .rail{position:absolute;transform:none;width:auto;max-width:none;margin:0!important;--rb:40px;display:flex;align-self:stretch;justify-self:stretch}
+#app.oval[data-screen="game"] .mid .felt{flex:1;justify-content:center;gap:8px}
+#app.oval[data-screen="game"] .felt-head{display:block}
+#app.oval[data-screen="game"] .felt-logo{display:flex}
+#app.oval[data-screen="game"] .mid .felt{margin:-10px -12px}
+#app.oval[data-screen="game"] .mid .pot{--pw:128px;font-size:.95rem}
+#app.oval[data-screen="game"] .board{--cw:min(9.5vw,48px)}
+#app.oval[data-screen="game"] .opps{position:absolute;inset:0;display:block;padding:0;overflow:visible;z-index:3;pointer-events:none;align-self:stretch;width:auto;max-width:none}
+@media (orientation:portrait){
+  #app.oval[data-screen="game"] .dock{flex:none;height:128px;justify-content:flex-end;z-index:6}
+}
+/* ---- 楕円テーブル（縦長・金の縁）と名札の席 ---- */
+#app.oval[data-screen="game"] .mid .rail{border:0!important;border-image:none!important;border-radius:999px;padding:11px!important;filter:none;
+  background:linear-gradient(160deg,#fff1c2 0%,#b8913f 14%,#5a3f12 30%,#e9cf88 48%,#6b4c18 66%,#d9b25c 84%,#3b2a0c 100%)!important;
+  box-shadow:0 0 0 2px #1a1206,0 0 0 4px rgba(217,178,92,.55),0 0 26px rgba(246,228,166,.28),0 18px 40px rgba(0,0,0,.85)!important}
+#app.oval[data-screen="game"] .mid .felt{margin:0!important;border-radius:999px;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 42%,#1d7b55 0%,#0f5238 55%,#072a1c 100%)!important;
+  box-shadow:inset 0 0 0 7px #120c05,inset 0 0 0 8px #d9b25c,inset 0 0 0 10px #2a1d08,inset 0 0 0 11px rgba(217,178,92,.5),inset 0 0 50px rgba(0,0,0,.65)!important}
+#app.oval[data-screen="game"] .mid .felt::before{display:block;border-radius:999px;opacity:.28}
+#app.oval[data-screen="game"] .felt-logo{display:none}
+#app.oval[data-screen="game"] .board{--cw:var(--bcw,40px)}
+#app.oval[data-screen="game"] .mid .pot,#app.oval[data-screen="game"] .mid .pots{order:-1}
+#app.oval[data-screen="game"] .felt-head{order:2;display:flex;align-items:center;gap:5px;max-width:100%;font-family:var(--f-body);letter-spacing:.1em;font-size:.82rem;color:var(--ink)}
+#app.oval[data-screen="game"] .felt-head{font-size:0}
+#app.oval[data-screen="game"] .felt-head small{display:inline;white-space:nowrap;margin:0;font-size:clamp(.6rem,3.2vw,.72rem);letter-spacing:.06em;color:var(--ink);font-weight:700}
+#app.oval[data-screen="game"] .felt-head::before,#app.oval[data-screen="game"] .felt-head::after{content:'';width:clamp(0px,calc(6vw - 12px),46px);flex:none;height:1px;background:linear-gradient(90deg,transparent,var(--gold))}
+#app.oval[data-screen="game"] .felt-head::after{background:linear-gradient(90deg,var(--gold),transparent)}
+#app.oval[data-screen="game"] .opps .oseat{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(var(--sz,1));width:104px;display:flex;flex-direction:column;align-items:center;pointer-events:auto;transition:opacity .25s}
+.oseat .ocards{display:flex;gap:0;--cw:24px;height:34px;margin-bottom:-3px;position:relative;z-index:0}
+.oseat .ocards .card:nth-child(1){transform:rotate(-8deg)}
+.oseat .ocards .card:nth-child(2){transform:rotate(7deg);margin-left:-5px}
+.oseat.open .ocards{--cw:26px}
+.oseat .ocards .card.win{transform:translateY(-3px)}
+.oplate{position:relative;display:flex;align-items:center;gap:5px;width:100%;height:36px;padding:0 6px 0 3px;border-radius:999px;background:linear-gradient(180deg,#1b150c,#050403);border:1.5px solid var(--gold);box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),0 4px 10px rgba(0,0,0,.7)}
+.oav{width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;color:#8c8578;background:radial-gradient(circle at 50% 35%,#4a4640,#1a1815);box-shadow:0 0 0 1.5px var(--gold-lo)}
+.oav svg{width:20px;height:20px;margin-top:3px}
+.otx{display:flex;flex-direction:column;min-width:0;line-height:1.1}
+.otx{flex:1}
+.otx b{font-size:.64rem;letter-spacing:-.02em;color:var(--gold-hi);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ost{font-family:var(--f-num);font-weight:700;font-size:.78rem;color:#fff}
+.oplate{z-index:1}
+.oplate .pos{margin-left:auto;flex:none;font-size:.5rem;padding:0 3px}
+/* 名前を6文字まで出すため、ほかの人の席のポジションは名札の外（カードの右）に置く */
+.oseat:not(.hero) .oav{width:24px;height:24px}
+.oseat:not(.hero) .oav svg{width:17px;height:17px}
+.oseat:not(.hero) .oplate{gap:4px;padding:0 5px 0 3px}
+.oseat:not(.hero) .oplate .pos{position:absolute;right:0;top:-24px;margin:0}
+.oplate .pos.m-sb,.oplate .pos.m-bb{font-size:0;padding:0;width:18px;height:18px} /* SB・BBは文字入りの画像なので文字は出さない */
+.oplate .tag.away{position:absolute;bottom:-7px;right:2px;font-size:.5rem;padding:0 3px}
+.odealer{position:absolute;left:-9px;bottom:-6px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:.6rem;font-weight:800;color:#231603;background:radial-gradient(circle at 40% 35%,#fff7d6,#d9b25c 60%,#8a6420);box-shadow:0 1px 3px rgba(0,0,0,.7)}
+.oact{margin-top:2px;max-width:120px;font-size:.6rem;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:3px;min-height:1em}
+.oact.win{color:var(--gold-hi);font-weight:700}
+.oseat.cur .oplate{border-color:var(--gold-hi);box-shadow:0 0 0 1px var(--gold-hi),0 0 14px rgba(246,228,166,.75)}
+.oseat.winner .oplate{border-color:var(--gold-hi);box-shadow:0 0 0 1px var(--gold-hi),0 0 18px rgba(246,228,166,.9)}
+.oseat.folded{opacity:.45}
+.oseat.out{opacity:.25}
+#app.oval[data-screen="game"] .opps .oseat.hero{width:150px;z-index:2;transform:translate(-50%,-50%)}
+.oseat.hero .hole{display:flex;--cw:46px;margin-bottom:-12px;position:relative;z-index:1}
+.oseat.hero .hole .card:nth-child(1){transform:rotate(-6deg)}
+.oseat.hero .hole .card:nth-child(2){transform:rotate(6deg);margin-left:-6px}
+.oseat.hero .hole .card.deal{animation:dealme .5s cubic-bezier(.2,.8,.3,1.15) both;animation-delay:var(--d,0s)}
+.oseat.hero .oplate{height:40px}
+.oseat.hero .oav{width:32px;height:32px}
+.oseat.hero .otx b{font-size:.8rem}
+.oseat.hero .ost{font-size:.9rem}
+.oseat.hero .oact{font-size:.68rem}
+.ocrown{width:20px;height:20px;margin-bottom:-4px;background:var(--a-crown) center/contain no-repeat;position:relative;z-index:2}
+.felt-head{white-space:nowrap}
+/* 横画面のスマホ：9人でも席が重ならないよう、操作ボタンを縦に並べてテーブルの場所を広げる */
+@media (orientation:landscape) and (max-height:520px){
+  #app.oval[data-screen="game"]{grid-template-columns:minmax(0,1fr) 156px}
+  #app.oval[data-screen="game"] .dock{padding-left:4px}
+  #app.oval[data-screen="game"] .actions{grid-template-columns:1fr}
+  #app.oval[data-screen="game"] .abtn{height:56px}
+}
+.opos{display:none;font-style:normal;color:var(--gold-hi)}
+.ost{white-space:nowrap}
+#app.oval.owide[data-screen="game"] .oseat:not(.hero) .ost{font-size:.58rem;letter-spacing:-.03em}
+/* 楕円テーブルでは「フロップ」などの表示は出さない（POTと場のカードだけ） */
+#app.oval[data-screen="game"] .felt-head{display:none!important}
+#app.oval.owide[data-screen="game"] .opos{display:inline}
+#app.oval.owide[data-screen="game"] .oseat:not(.hero) .oplate .pos{display:none}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 
@@ -762,7 +862,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fmt=n=>Number(n||0).toLocaleString('ja-JP');
 const buzz=ms=>{try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-const MAXP=22; // 52枚 = 22人×2 + バーン3 + ボード5
+const MAXP=9; // 楕円テーブルに並べられる人数
 const SUIT={s:'♠',h:'♥',d:'♦',c:'♣'};
 const RL=r=>({10:'10',11:'J',12:'Q',13:'K',14:'A'}[r]||String(r));
 const STREET_JP={preflop:'プリフロップ',flop:'フロップ',turn:'ターン',river:'リバー',showdown:'ショーダウン'};
@@ -965,7 +1065,7 @@ async function decryptRv(me,S){
     const kk=await sharedKey(S.hostPub);
     const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(me.rv.iv)},kk,unb64(me.rv.ct));
     APP.myRv=JSON.parse(new TextDecoder().decode(pt));
-    if(APP.sheet==='review')render();
+    if(APP.screen==='game')render();
   }catch(e){}
 }
 async function decryptMine(){
@@ -1159,7 +1259,14 @@ function renderHome(){
   $('#h-host').onclick=go(hostRoom);
   $('#h-join').onclick=go(joinRoom);
   $('#h-local').onclick=()=>{grab();APP.err='';APP.role='local';if(APP.name)setupRows[0].name=APP.name;APP.screen='local-setup';render()};
+  fitHome();
 }
+/* 390px幅のデザインを、画面に収まる大きさに拡大縮小する（入力中はキーボードで画面が変わるので動かさない） */
+function fitHome(){
+  const h=$('.home'),a=$('#app');if(!h||(document.activeElement&&document.activeElement.tagName==='INPUT'))return;
+  h.style.setProperty('--hs',Math.min(a.clientWidth/390,a.clientHeight/h.offsetHeight,1.7));
+}
+addEventListener('resize',()=>{if(APP.screen==='home')fitHome()});
 
 async function prepare(){
   APP.hash=await sha(APP.pass);
@@ -1355,7 +1462,7 @@ addEventListener('resize',()=>{if(APP.screen==='lobby')fitLobby()});
 function lobbyWaitHTML(){
   if(!APP.S)return'部屋を探しています…（ホストが同じ合言葉で部屋を作ると自動で入れます）';
   if(APP.hostHere===false)return'ホストがいません。ホストが戻るか、同じ合言葉で部屋を作り直すのを待っています…';
-  if(APP.S.players&&!APP.S.players.some(p=>p.pid===APP.pid))return'参加者に追加されるのを待っています…';
+  if(APP.S.players&&!APP.S.players.some(p=>p.pid===APP.pid))return APP.S.players.length>=MAXP?`満員です（最大${MAXP}人）。空きが出ると入れます`:'参加者に追加されるのを待っています…';
   return'ホストのスタートを待っています…';
 }
 function bindLobbyList(){$$('[data-cpu]').forEach(b=>b.onclick=()=>{APP.lobbyCpus=APP.lobbyCpus.filter(c=>c.pid!==b.dataset.cpu);publish();renderLobby()})}
@@ -2088,6 +2195,7 @@ function posInfoHTML(V,i){
 }
 
 function seatHTML(p,i,V){
+  if(isOval(V))return oseatHTML(p,i,V);
   const tags=[];
   if(i===V.dealer&&V.status!=='over')tags.push(`<span class="tag d" title="ボタン（ディーラー）">D</span>`);
   const pl=positionsOf(V)[i];
@@ -2100,6 +2208,7 @@ function seatHTML(p,i,V){
   const won=p.won>0&&V.phase==='done';
   const cls=['seat',i===V.cur?'cur':'',p.folded&&!p.out?'folded':'',p.out?'out':'',won?'winner':''].join(' ');
   let line=esc(p.lastAction);
+  if(isOval(V)&&V.tabled&&V.phase==='play'&&p.eq!=null&&!p.folded)line=`勝率 ${p.eq}%`;
   if(V.showdown&&p.bestName&&!p.folded)line+=` ${esc(p.bestName)}`;
   const bet=p.bet>0&&V.phase!=='done'?`<span class="betchip">${chipI(p.bet)}${fmt(p.bet)}</span>`:'';
   return`<div class="${cls}" data-j="${i}">
@@ -2171,7 +2280,7 @@ function dockHTML(V,i){
   }
   if(V.phase==='done'){
     const prs=V.potResults&&V.potResults.length?V.potResults:V.players.filter(p=>p.won>0).map(w=>({label:'ポット',amount:w.won,winners:[w.name],hand:w.bestName}));
-    return`${sdHandsHTML(V,i)}<div class="results">${prs.map(r=>`<div class="w"><span class="plabel">${esc(r.label)} ${fmt(r.amount)}</span> → <b>${r.winners.map(esc).join('・')}</b>${r.split?'（分配）':''} · ${r.fold?'全員フォールド':esc(r.hand||'')}</div>`).join('')}</div>
+    return`${isOval(V)?'':sdHandsHTML(V,i)}<div class="results">${prs.map(r=>`<div class="w"><span class="plabel">${esc(r.label)} ${fmt(r.amount)}</span> → <b>${r.winners.map(esc).join('・')}</b>${r.split?'（分配）':''} · ${r.fold?'全員フォールド':esc(r.hand||'')}</div>`).join('')}</div>
       <div class="actions">${rbs}${player?'<div class="status" style="grid-column:1/-1">ホストが次のハンドを配るのを待っています</div>':'<button class="abtn wide" id="next">次のハンドへ</button>'}</div>`;
   }
   const p=V.cur>=0?V.players[V.cur]:null;
@@ -2188,7 +2297,7 @@ function dockHTML(V,i){
   if(mine)status=toCall>0?`<b>あなたの番</b> · コールに ${fmt(toCall)}`:'<b>あなたの番</b> · チェックできます';
   const callLabel=!mine?'コール':toCall===0?'チェック':callAmt>=me.chips?'オールイン':'コール';
   const hostSkip=host&&p&&G&&G.players[V.cur].kind==='remote';
-  return`${sdHandsHTML(V,i)}<div class="status">${status}</div>
+  return`${isOval(V)?'':sdHandsHTML(V,i)}<div class="status">${status}</div>
     <div class="actions">
       <button class="abtn fold" id="a-fold" ${mine&&toCall>0?'':'disabled'}>${ICON.spade}<span class="al">フォールド<em>FOLD</em></span></button>
       <button class="abtn call" id="a-call" ${mine?'':'disabled'}>${ICON.coins}<span class="al">${callLabel}${mine&&callAmt>0?`<small>${fmt(callAmt)}</small>`:''}<em>${mine&&toCall===0?'CHECK':'CALL'}</em></span></button>
@@ -2375,11 +2484,105 @@ async function shareResult(V,b){
   }catch(e){}
 }
 
+/* ---------- 9人以下：楕円のテーブルの周りに席を並べる ---------- */
+const isOval=V=>V.players.length<=9;
+const SILHOUETTE='<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="9" r="4.6"/><path d="M3.6 22c.7-5.300 4.200-8.100 8.400-8.100s7.700 2.800 8.400 8.100z"/></svg>';
+/* 楕円テーブルの席：カードを名札の上に重ね、名札にアイコン・名前・持ち点を出す */
+function oseatHTML(p,i,V){
+  const pl=positionsOf(V)[i];
+  let cards='';
+  if(!p.out&&!p.folded&&!p.mucked&&V.handNo>0&&(p.show||p.total>0||p.acted||V.phase!=='over'))cards=p.show?p.show.map(c=>cardHTML(c,V)).join(''):backHTML()+backHTML();
+  let line=esc(p.lastAction);
+  if(V.tabled&&V.phase==='play'&&p.eq!=null&&!p.folded)line=`勝率 ${p.eq}%`;
+  else if(V.showdown&&p.bestName&&!p.folded)line=esc(p.bestName);
+  const bet=p.bet>0&&V.phase!=='done'?`<span class="betchip">${chipI(p.bet)}${fmt(p.bet)}</span>`:'';
+  const won=p.won>0&&V.phase==='done';
+  return`<div class="oseat ${i===V.cur&&V.phase==='play'?'cur':''} ${p.folded&&!p.out?'folded':''} ${p.out?'out':''} ${won?'winner':''} ${p.show&&!p.folded?'open':''}" data-j="${i}">
+    <div class="ocards">${cards}</div>
+    <div class="oplate"><span class="oav">${SILHOUETTE}</span><span class="otx"><b>${esc(p.name)}</b><span class="ost">${pl?`<em class="opos">${pl==='BTN/SB'?'SB':pl} · </em>`:''}${fmt(p.chips)}</span></span>${pl?posBadge(pl):''}${isAway(p)&&!p.out?'<span class="tag away">不在</span>':''}${i===V.dealer&&!p.out?'<i class="odealer">D</i>':''}</div>
+    <div class="oact ${won?'win':''}">${won?`+${fmt(p.won)}`:line||'&nbsp;'}${bet}</div>
+  </div>`;
+}
+function heroHTML(V,i){
+  const p=V.players[i],cards=myCards(V,i);
+  let hole='',hint='';
+  if(cards&&!p.out){
+    const hk=V.handNo+'|'+p.pid+'|'+cards.join();const anim=APP.holeKey!==hk;APP.holeKey=hk;
+    hole=cards.map((c,k)=>cardHTML(c,V,`${p.folded?'dim':''} ${anim?'deal':''}`,anim?`--d:${k*.12}s`:'')).join('');
+    const cs=cards.map(dec),bd=(V.board||[]).map(dec);
+    if(p.folded)hint='フォールド中';
+    else if(V.tabled&&V.phase==='play'&&p.eq!=null)hint=`勝率 ${p.eq}%`;
+    else if(bd.length>=3)hint=best(cs.concat(bd)).name;
+    else if(cs[0].r===cs[1].r)hint='ポケットペア';
+    else if(cs[0].s===cs[1].s)hint='スーテッド';
+  }else if(p.out)hint=p.kicked?'退席中':p.waitBB&&p.chips>0?'BB待ち':'脱落';
+  else if(APP.role==='player'&&V.handNo>0&&!p.folded){hole=backHTML()+backHTML();hint='受け取り中…'}
+  const pl=positionsOf(V)[i];
+  const act=p.lastAction&&V.phase==='play'&&!/^(SB|BB) /.test(p.lastAction)?esc(p.lastAction):hint;
+  const bet=p.bet>0&&V.phase!=='done'?`<span class="betchip">${chipI(p.bet)}${fmt(p.bet)}</span>`:'';
+  return`<div class="oseat hero ${i===V.cur&&V.phase==='play'?'cur':''} ${p.folded&&!p.out?'folded':''} ${p.won>0&&V.phase==='done'?'winner':''}" data-j="${i}">
+    <i class="ocrown"></i>
+    <div class="hole">${hole}</div>
+    <div class="oplate"><span class="oav">${SILHOUETTE}</span><span class="otx"><b>${esc(p.name)}</b><span class="ost">${fmt(p.chips)}</span></span>${pl?posBadge(pl):''}${i===V.dealer&&!p.out?'<i class="odealer">D</i>':''}</div>
+    <div class="oact">${act||'&nbsp;'}${bet}</div>
+  </div>`;
+}
+/* 席の位置：自分は一番下の中央。ほかの人は自分の左隣から時計回りに、楕円の上に並べる */
+function layoutOval(){
+  const box=$('#opps');if(!box)return;
+  const W=box.clientWidth,H=box.clientHeight;
+  const hero=box.querySelector('.oseat.hero'),seats=[...box.querySelectorAll('.oseat:not(.hero)')],m=seats.length;
+  // 幅が390pxより狭い画面だけ、ほかの人の席を画面幅に合わせて縮める
+  const sz=Math.min(1,W/390);box.style.setProperty('--sz',sz.toFixed(3));
+  const sw=(seats[0]?seats[0].offsetWidth:92)*sz,sh=(seats[0]?seats[0].offsetHeight:64)*sz;
+  const rx=Math.max(0,W/2-sw/2-2),ry=Math.max(0,H/2-sh/2-2),gap=hero?25:0;
+  // 楕円（角を少し張り出させた形）の上に、席どうしの間隔が等しくなるように並べる
+  const sp=v=>Math.sign(v)*Math.pow(Math.abs(v),.72);
+  const P=d=>{const t=d*Math.PI/180;return[W/2+rx*sp(Math.cos(t)),H/2+ry*sp(Math.sin(t))]};
+  const d0=hero?90+gap:90,d1=hero?450-gap:450,N=720,pts=[],len=[0];
+  for(let k=0;k<=N;k++){pts.push(P(d0+(d1-d0)*k/N));if(k)len.push(len[k-1]+Math.hypot(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1]))}
+  seats.forEach((s,k)=>{
+    const want=len[N]*(hero?(k+1)/(m+1):(k+.5)/m);let q=0;while(q<N&&len[q]<want)q++;
+    s.style.left=pts[q][0]+'px';s.style.top=pts[q][1]+'px';
+  });
+  if(hero){hero.style.left=W/2+'px';hero.style.top=(H-hero.offsetHeight/2-2)+'px'}
+  // テーブルは席の中心を結んだ範囲いっぱいに広げ、席がテーブルの縁に乗るようにする
+  const rail=$('.mid .rail'),hh=hero?hero.offsetHeight:sh;
+  // テーブルはできるだけ大きく。席が縁に多少かぶるのはよしとする。場のカードはテーブルの幅に合わせる
+  // 横長の場所では、自分の手札が場の表示にかぶらないよう、テーブルの下端を少し上げる
+  const wide=W>H,side=Math.round(sw*(wide?.5:.45)),top=Math.round(wide?sh-30:sh*.2),bot=Math.round(wide?36:hh*.3);
+  $('#app').classList.toggle('owide',wide);
+  if(rail){
+    Object.assign(rail.style,{left:side+'px',right:side+'px',top:top+'px',bottom:bot+'px'});
+    const inner=W-side*2-22-(wide?34:24);
+    // 場の表示（POT・場のカード・「フロップ」など）がどの席にも隠れないよう、
+    // テーブルの中で席にかからない場所を探し、そこに入る一番大きいカードにして、表示をその場所へ寄せる
+    const fTop=top+11,fBot=H-bot-11,pos=seats.map(s=>{const x=parseFloat(s.style.left),y=parseFloat(s.style.top);return[x,sw/2,y-sh/2,y+sh/2-14]});
+    if(hero)pos.push([W/2,hero.offsetWidth/2,H-hh-2+16,H]);
+    const box=(by,cw)=>[by-cw*.7-40,by+cw*.7,Math.max(5*cw+24,128)/2]; // 上にPOT、その下に場のカード
+    const free=([t,b,hw])=>t>=fTop&&b<=fBot&&!pos.some(([x,sx,st,sb])=>Math.abs(x-W/2)<sx+hw+4&&st<b+4&&sb>t-4);
+    const mid=(fTop+fBot)/2;let cw=Math.max(24,Math.min(56,Math.floor((inner-4*6)/5))),pick=null;
+    for(;cw>=24&&!pick;cw--){
+      const tries=[];for(let by=fTop;by<=fBot;by+=3)tries.push(by);
+      tries.sort((a,b)=>Math.abs(a-mid)-Math.abs(b-mid));
+      for(const by of tries){const r=box(by,cw);if(free(r)){pick=[cw,r];break}}
+    }
+    if(!pick)pick=[24,box(mid,24)];
+    const [bc,[ct,cb]]=pick,shift=(ct+cb)/2-mid,felt=rail.querySelector('.felt');
+    rail.style.setProperty('--bcw',bc+'px');
+    if(felt){felt.style.paddingTop=Math.max(0,2*shift)+'px';felt.style.paddingBottom=Math.max(0,-2*shift)+'px'}
+  }
+}
+addEventListener('resize',()=>{if(APP.screen==='game'&&$('#app').classList.contains('oval'))layoutOval()});
+
+
 function renderGame(){
   const V=curView();
   if(!V||!V.players){renderLobby();return}
   $('#app').dataset.screen='game';
   const i=myIdx(V);
+  const oval=isOval(V),heroIn=oval&&i>=0&&(APP.role!=='local'||localHumans().length===1);
+  $('#app').classList.toggle('oval',oval);
   // 相手は「自分の左隣から時計回り」（＝行動する順）に並べる。自分がいなければボタンの左から
   const nP=V.players.length,from=i>=0?i:Math.max(0,V.dealer);
   const others=V.players.map((p,j)=>[p,j]).filter(([p,j])=>!(j===i&&(APP.role!=='local'||localHumans().length===1)))
@@ -2399,7 +2602,7 @@ function renderGame(){
     </div>
     ${banner?`<div class="banner">${esc(banner)}</div>`:''}
     <div class="mid">
-    <div class="opps" id="opps">${others.map(([p,j])=>seatHTML(p,j,V)).join('')}</div>
+    <div class="opps" id="opps">${others.map(([p,j])=>seatHTML(p,j,V)).join('')}${heroIn?heroHTML(V,i):''}</div>
     <div class="rail"><div class="felt">
       <div class="felt-logo">TEXAS HOLD'EM</div>
       <div class="felt-head">${STREET_EN[V.street]||''}${V.street?`<small>${STREET_JP[V.street]}</small>`:''}</div>
@@ -2409,7 +2612,7 @@ function renderGame(){
       <div class="say ${APP.sayShown!==V.sayN?'flash':''}">${esc(V.say)}</div>
     </div></div>
     </div>
-    ${meHTML(V,i)}
+    ${heroIn?'':meHTML(V,i)}
     <div class="dock ${isMyTurn(V,i)?'myturn':''}">${dockHTML(V,i)}</div>
     ${sheetHTML(V,i)}
     ${showCover?`<div class="cover">
@@ -2566,6 +2769,7 @@ function fitSeats(){
   const n=box.children.length;
   // 縦画面は常に小さいテーブル。横画面は人数と画面サイズで1度決めたら、ゲーム中は変えない
   const tk=innerWidth+'x'+innerHeight+'x'+n;
+  if(app.classList.contains('oval')){app.classList.remove('tight');app.classList.add('tb');box.className='opps';layoutOval();return}
   app.classList.remove('tight');box.classList.remove('overflow');
   app.classList.toggle('tb',innerHeight>=innerWidth||APP.tbKey===tk);
   if(!n){box.className='opps';return}
