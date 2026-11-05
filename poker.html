@@ -830,7 +830,7 @@ html[data-scr="other"] #bgx{background:linear-gradient(180deg,rgba(6,5,4,.66),rg
 .oseat.hero .otx b{font-size:.8rem}
 .oseat.hero .ost{font-size:.9rem}
 .oseat.hero .oact{font-size:.68rem}
-.ocrown{width:20px;height:20px;margin-bottom:-4px;background:var(--a-crown) center/contain no-repeat;position:relative;z-index:2}
+.ocrown{position:absolute;left:50%;top:-15px;transform:translateX(-50%);width:20px;height:20px;background:var(--a-crown) center/contain no-repeat;z-index:2;filter:drop-shadow(0 1px 3px rgba(0,0,0,.8))}
 .felt-head{white-space:nowrap}
 /* 横長の画面（スマホ横・パソコン）：操作ボタンは右端に縦1列で置き、残りの幅を全部テーブルに使う */
 @media (orientation:landscape){
@@ -855,6 +855,30 @@ html[data-scr="other"] #bgx{background:linear-gradient(180deg,rgba(6,5,4,.66),rg
 .sh-pot b{font-family:var(--f-num);font-size:1.05rem;color:var(--gold-hi)}
 .big-amt input{display:block;width:100%;padding:0;border:0;border-bottom:1px dashed rgba(217,178,92,.45);background:none;font:inherit;line-height:1.1;color:inherit;text-align:center;outline:none;-webkit-user-select:text;user-select:text}
 .big-amt input:focus{border-bottom-color:var(--gold-hi)}
+/* ---- デモ：テーブルに置いた賭けチップ ---- */
+.obet{position:absolute;left:50%;top:50%;transform:translate(calc(-50% + var(--bx,0px)),calc(-50% + var(--by,0px)));display:flex;align-items:center;gap:4px;padding:2px 8px 2px 4px;border-radius:999px;background:rgba(0,0,0,.62);border:1px solid rgba(246,228,166,.4);font-family:var(--f-num);font-weight:700;font-size:.72rem;color:#fff;white-space:nowrap;z-index:4;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.6)}
+.obet .stk{display:inline-flex}
+.obet .stk .chip-ico{width:15px;height:15px;margin-left:-8px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.7))}
+.obet .stk .chip-ico:first-child{margin-left:0}
+/* ---- デモ：アクションの吹き出し ---- */
+.bubble{position:fixed;z-index:60;pointer-events:none;padding:5px 12px;border-radius:14px;background:linear-gradient(180deg,#fff7d6,#e3c06a);color:#231603;font-weight:800;font-size:.86rem;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.6);transform:translate(-50%,-100%)}
+.bubble::after{content:'';position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);border:6px solid transparent;border-bottom:0;border-top-color:#e3c06a}
+.bubble.fold{background:linear-gradient(180deg,#d8d4cc,#8f897d)}
+.bubble.fold::after{border-top-color:#8f897d}
+.bubble.raise{background:linear-gradient(180deg,#ffe08a,#e0902a)}
+.bubble.raise::after{border-top-color:#e0902a}
+.bubble.allin{background:linear-gradient(180deg,#ff8a7a,#c4281c);color:#fff}
+.bubble.allin::after{border-top-color:#c4281c}
+/* ---- デモ：戦績 ---- */
+.recs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.recs>div{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;border:1px solid var(--gold-lo);background:rgba(8,6,4,.85)}
+.recs em{font-style:normal;font-size:.66rem;color:var(--gold)}
+.recs b{font-family:var(--f-num);font-size:.95rem;color:var(--gold-hi)}
+.recs b.plus{color:#7fd6a0}
+.recs b.minus{color:#f07a6a}
+/* ---- デモ：大きい役 ---- */
+.fx-banner.bigh .fxbig{color:transparent;background:linear-gradient(180deg,#fff7d6,#f6e4a6 30%,#d9b25c 60%,#8a6420);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 18px rgba(246,228,166,.8))}
+.fx-banner.badbeat .fxbig{color:#ff8a7a;filter:drop-shadow(0 0 16px rgba(196,40,28,.9))}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 
@@ -2360,6 +2384,8 @@ function sheetHTML(V,i){
     const rows=V.players.map((p,j)=>({p,j,...ledger(V,p)})).sort((a,b)=>b.net-a.net);
     return`<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-label="収支">
       <div class="grab"></div>
+      <h3>この端末の通算戦績</h3>
+      ${recordsHTML()}
       <h3>いまの収支</h3>
       <div class="ledger">
         <div class="lrow head"><span></span><span>名前</span><span>持ち点</span><span>購入</span><span>収支</span></div>
@@ -2392,7 +2418,7 @@ function sheetHTML(V,i){
 const tiltOf=c=>{let h=3;for(const ch of String(c))h=(h*31+ch.charCodeAt(0))%97;return((h/96-.5)*2.6).toFixed(2)+'deg'};
 function boardFX(){
   const A=APP.bAnim;if(!A||!Element.prototype.animate)return;
-  const el=performance.now()-A.t0,flop=A.to-A.from>=3,total=flop?1420:800;
+  const el=performance.now()-A.t0,flop=A.to-A.from===3,total=flop?1420:800;
   if(el>=total){APP.bAnim=null;return}
   const cs=$$('.board .card');if(!cs.length)return;
   const step=cs[1]?cs[1].getBoundingClientRect().left-cs[0].getBoundingClientRect().left:0;
@@ -2496,6 +2522,70 @@ async function shareResult(V,b){
 
 /* ---------- 9人以下：楕円のテーブルの周りに席を並べる ---------- */
 const isOval=V=>V.players.length<=9;
+function chipLeader(V){
+  const st=V.players.map(p=>p.out&&p.chips<=0?-1:p.chips+(V.phase==='play'?(p.total||0):0));
+  const top=Math.max(...st);
+  return top>0&&st.filter(x=>x===top).length===1?st.indexOf(top):-1;
+}
+
+/* ---------- デモ：ドロー判定 ---------- */
+function drawNames(cs,bd){
+  if(bd.length<3||bd.length>=5)return[];
+  const all=cs.concat(bd),made=best(all).score[0];
+  const out=[];
+  if(made<5){
+    const cnt=s=>all.filter(c=>c.s===s).length;
+    for(const s of 'shdc')if(cnt(s)===4&&cs.some(c=>c.s===s)){out.push('フラッシュドロー');break}
+  }
+  if(made<4){
+    const outsOf=cards=>{const rs=new Set(cards.map(c=>c.r));if(rs.has(14))rs.add(1);const o=new Set();
+      for(let lo=1;lo<=10;lo++){const miss=[];for(let r=lo;r<lo+5;r++)if(!rs.has(r))miss.push(r);if(miss.length===1)o.add(miss[0])}return o};
+    const mine=outsOf(all),board=outsOf(bd),n=[...mine].filter(r=>!board.has(r)).length;
+    if(n>=2)out.push('両面ストレートドロー');else if(n===1)out.push('ガットショット');
+  }
+  return out;
+}
+
+/* ---------- デモ：アクションの吹き出し ---------- */
+function bubble(el,text){
+  const fx=$('#fx');if(!fx||!el||!Element.prototype.animate)return;
+  const r=el.getBoundingClientRect(),b=document.createElement('div');
+  const kind=/^フォールド|^退席/.test(text)?'fold':/^オールイン/.test(text)?'allin':/^(レイズ|ベット)/.test(text)?'raise':'';
+  b.className='bubble '+kind;b.textContent=text;b.style.left=(r.left+r.width/2)+'px';b.style.top=(r.top+4)+'px';fx.appendChild(b);
+  b.animate([{opacity:0,transform:'translate(-50%,-80%) scale(.6)'},{opacity:1,transform:'translate(-50%,-100%) scale(1.08)',offset:.12},{opacity:1,transform:'translate(-50%,-100%) scale(1)',offset:.2},{opacity:1,offset:.8},{opacity:0,transform:'translate(-50%,-130%) scale(1)'}],{duration:1700,easing:'ease-out',fill:'forwards'}).onfinish=()=>b.remove();
+  setTimeout(()=>b.remove(),2200);
+}
+
+/* ---------- デモ：この端末の戦績 ---------- */
+const recLoad=()=>{try{return JSON.parse(store.get('holdem-records'))||[]}catch(e){return[]}};
+function recSave(V,i){
+  if(i<0||!V.players[i])return;
+  if(!APP.gameKey||(APP.gameHand||0)>V.handNo)APP.gameKey=Date.now();
+  APP.gameHand=V.handNo;
+  const me=V.players[i],rows=V.players.map(p=>ledger(V,p).net).sort((a,b)=>b-a);
+  const net=ledger(V,me).net,list=recLoad();
+  let r=list.find(x=>x.k===APP.gameKey);
+  if(!r){r={k:APP.gameKey,date:Date.now(),maxWin:0,best:-1,bestName:''};list.unshift(r)}
+  Object.assign(r,{hands:V.handNo,net,n:V.players.length,rank:rows.indexOf(net)+1});
+  if(me.won>r.maxWin)r.maxWin=me.won;
+  if(me.won>0&&me.bestName){const k=HAND_RANK(me.bestName);if(k>r.best){r.best=k;r.bestName=me.bestName}}
+  store.set('holdem-records',JSON.stringify(list.slice(0,200)));
+}
+const HAND_RANK=n=>n==='ロイヤルフラッシュ'?9:HAND_JP.indexOf(n);
+function recordsHTML(){
+  const L=recLoad();if(!L.length)return'<p class="note">ゲームを遊ぶと、ここに通算の戦績が残ります（この端末だけに保存）。</p>';
+  const tot=L.reduce((s,r)=>s+r.net,0),wins=L.filter(r=>r.rank===1).length,plus=L.filter(r=>r.net>0).length;
+  const mw=Math.max(...L.map(r=>r.maxWin||0)),bb=L.reduce((a,r)=>r.best>a.best?r:a,{best:-1});
+  return`<div class="recs">
+    <div><em>ゲーム数</em><b>${L.length}</b></div>
+    <div><em>通算収支</em><b class="${tot>0?'plus':tot<0?'minus':''}">${signed(tot)}</b></div>
+    <div><em>1位</em><b>${wins}回</b></div>
+    <div><em>勝ち越し</em><b>${plus}/${L.length}</b></div>
+    <div><em>最大の獲得</em><b>${fmt(mw)}</b></div>
+    <div><em>最高の役</em><b>${bb.best>=0?esc(bb.bestName):'—'}</b></div>
+  </div>`;
+}
+
 const SILHOUETTE='<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="9" r="4.6"/><path d="M3.6 22c.7-5.300 4.200-8.100 8.400-8.100s7.700 2.800 8.400 8.100z"/></svg>';
 /* 楕円テーブルの席：カードを名札の上に重ね、名札にアイコン・名前・持ち点を出す */
 function oseatHTML(p,i,V){
@@ -2508,9 +2598,11 @@ function oseatHTML(p,i,V){
   const bet=p.bet>0&&V.phase!=='done'?`<span class="betchip">${chipI(p.bet)}${fmt(p.bet)}</span>`:'';
   const won=p.won>0&&V.phase==='done';
   return`<div class="oseat ${i===V.cur&&V.phase==='play'?'cur':''} ${p.folded&&!p.out?'folded':''} ${p.out?'out':''} ${won?'winner':''} ${p.show&&!p.folded?'open':''}" data-j="${i}">
+    ${chipLeader(V)===i?'<i class="ocrown" title="チップリーダー"></i>':''}
     <div class="ocards">${cards}</div>
     <div class="oplate"><span class="oav">${SILHOUETTE}</span><span class="otx"><b>${esc(p.name)}</b><span class="ost">${pl?`<em class="opos">${pl==='BTN/SB'?'SB':pl} · </em>`:''}${fmt(p.chips)}</span></span>${pl?posBadge(pl):''}${isAway(p)&&!p.out?'<span class="tag away">不在</span>':''}${i===V.dealer&&!p.out?'<i class="odealer">D</i>':''}</div>
-    <div class="oact ${won?'win':''}">${won?`+${fmt(p.won)}`:line||'&nbsp;'}${bet}</div>
+    <div class="oact ${won?'win':''}">${won?`+${fmt(p.won)}`:line||'&nbsp;'}</div>
+    ${p.bet>0&&V.phase!=='done'?`<div class="obet"><span class="stk">${chipI(5)}${chipI(25)}${chipI(p.bet)}</span>${fmt(p.bet)}</div>`:''}
   </div>`;
 }
 function heroHTML(V,i){
@@ -2522,19 +2614,20 @@ function heroHTML(V,i){
     const cs=cards.map(dec),bd=(V.board||[]).map(dec);
     if(p.folded)hint='フォールド中';
     else if(V.tabled&&V.phase==='play'&&p.eq!=null)hint=`勝率 ${p.eq}%`;
-    else if(bd.length>=3)hint=best(cs.concat(bd)).name;
+    else if(bd.length>=3)hint=[best(cs.concat(bd)).name,...drawNames(cs,bd)].join('・');
     else if(cs[0].r===cs[1].r)hint='ポケットペア';
     else if(cs[0].s===cs[1].s)hint='スーテッド';
   }else if(p.out)hint=p.kicked?'退席中':p.waitBB&&p.chips>0?'BB待ち':'脱落';
   else if(APP.role==='player'&&V.handNo>0&&!p.folded){hole=backHTML()+backHTML();hint='受け取り中…'}
   const pl=positionsOf(V)[i];
-  const act=p.lastAction&&V.phase==='play'&&!/^(SB|BB) /.test(p.lastAction)?esc(p.lastAction):hint;
+  const act=hint||(p.lastAction&&V.phase==='play'&&!/^(SB|BB) /.test(p.lastAction)?esc(p.lastAction):'');
   const bet=p.bet>0&&V.phase!=='done'?`<span class="betchip">${chipI(p.bet)}${fmt(p.bet)}</span>`:'';
   return`<div class="oseat hero ${i===V.cur&&V.phase==='play'?'cur':''} ${p.folded&&!p.out?'folded':''} ${p.won>0&&V.phase==='done'?'winner':''}" data-j="${i}">
-    <i class="ocrown"></i>
+    ${chipLeader(V)===i?'<i class="ocrown" title="チップリーダー"></i>':''}
     <div class="hole">${hole}</div>
     <div class="oplate"><span class="oav">${SILHOUETTE}</span><span class="otx"><b>${esc(p.name)}</b><span class="ost">${fmt(p.chips)}</span></span>${pl?posBadge(pl):''}${i===V.dealer&&!p.out?'<i class="odealer">D</i>':''}</div>
-    <div class="oact">${act||'&nbsp;'}${bet}</div>
+    <div class="oact">${act||'&nbsp;'}</div>
+    ${p.bet>0&&V.phase!=='done'?`<div class="obet"><span class="stk">${chipI(5)}${chipI(25)}${chipI(p.bet)}</span>${fmt(p.bet)}</div>`:''}
   </div>`;
 }
 /* 席の位置：自分は一番下の中央。ほかの人は自分の左隣から時計回りに、楕円の上に並べる */
@@ -2563,7 +2656,10 @@ function layoutOval(){
   const clashes=ps=>{const r=rects(ps);let c=0;for(let a=0;a<r.length;a++)for(let b=a+1;b<r.length;b++)if(r[a][0]<r[b][2]-2&&r[b][0]<r[a][2]-2&&r[a][1]<r[b][3]-2&&r[b][1]<r[a][3]-2)c++;return c};
   let ps=place(0);
   if(H>W){const base=clashes(ps);for(const b of [110,95,80,65,50]){const t=place(b*sz);if(clashes(t)<=base){ps=t;break}}}
-  seats.forEach((s,k)=>{s.style.left=ps[k][0]+'px';s.style.top=ps[k][1]+'px'});
+  seats.forEach((s,k)=>{s.style.left=ps[k][0]+'px';s.style.top=ps[k][1]+'px';
+    const dx=W/2-ps[k][0],dy=cy-ps[k][1],d=Math.hypot(dx,dy)||1,go=Math.min(78*sz,d*.6);
+    s.style.setProperty('--bx',(dx/d*go/sz)+'px');s.style.setProperty('--by',(dy/d*go/sz)+'px')});
+  if(hero)hero.style.setProperty('--by',(-hero.offsetHeight/2-14)+'px');
   if(hero){hero.style.left=W/2+'px';hero.style.top=(H-hero.offsetHeight*sz/2-2)+'px'}
   // テーブルは席の中心を結んだ範囲いっぱいに広げ、席がテーブルの縁に乗るようにする
   const rail=$('.mid .rail'),hh=hero?hero.offsetHeight*sz:sh;
@@ -2651,7 +2747,7 @@ function renderGame(){
   const ki=keep&&$('#amt-in');
   if(ki){ki.value=keep.v;APP.amtKeep=true;ki.focus();APP.amtKeep=false;try{ki.setSelectionRange(keep.s,keep.e)}catch(e){}}
   fitSeats();
-  boardFX();
+  try{boardFX()}catch(e){console.warn(e)}
   try{fxAfterRender(V,i)}catch(e){console.warn(e)}
 }
 
@@ -2765,6 +2861,7 @@ function fxAfterRender(V,i){
     for(const [pid,o] of Object.entries(now.acts)){
       const q=P.acts[pid];if(!q||q.a===o.a||!o.a)continue;
       const a=o.a,el=seatEl(o.j);
+      if(!/^\+/.test(a))bubble(el&&(el.querySelector('.oplate')||el),a);
       if(a.startsWith('フォールド')||a==='退席'||a==='マック')SFX.fold();
       else if(a.startsWith('チェック'))SFX.check();
       else if(a.startsWith('オールイン')){SFX.allin();fxBanner('ALL IN',V.players[o.j].name,'allin');buzz([40,30,40]);chipFly(el,pot,6)}
@@ -2780,9 +2877,17 @@ function fxAfterRender(V,i){
       const iLost=!meWin&&i>=0&&V.showdown&&!V.players[i].folded&&!V.players[i].out;
       fxBanner(meWin?'YOU WIN':iLost?'LOSE':'WINNER',ws.map(([p])=>p.name).join('・')+(hand?`　${hand}`:''),meWin?'mewin':iLost?'lose':'');
       if(meWin||/ストレートフラッシュ|ロイヤル|フォーカード|フルハウス/.test(hand))setTimeout(sparkle,200);
+      // 大きい役：フルハウス以上で勝ったら、役名を大きく出す
+      if(V.showdown&&HAND_RANK(hand)>=6)setTimeout(()=>{fxBanner(hand,ws.map(([p])=>p.name).join('・'),'bigh');sparkle();clip('impact',.8)},1500);
+      // バッドビート：フルハウス以上で負けた人、またはオールインの時点で勝率75%以上だった人が負けた
+      const bad=V.players.find(p=>p.won<=0&&!p.folded&&!p.out&&V.showdown&&(HAND_RANK(p.bestName||'')>=6||(APP.eqSnap&&APP.eqSnap[p.pid]>=75)));
+      if(bad)setTimeout(()=>{fxBanner('BAD BEAT',`${bad.name}${bad.bestName?'の'+bad.bestName:''}が逆転負け`,'badbeat');clip('impact',.9);buzz([60,40,60])},HAND_RANK(hand)>=6?3200:1500);
+      APP.eqSnap=null;
+      recSave(V,i);
     }
   }
   if(now.mine&&!(P.mine&&P.turnId===now.turnId)){SFX.turn();buzz([30,60,30])}
+  if(V.tabled&&V.phase==='play'){APP.eqSnap=APP.eqSnap||{};V.players.forEach(p=>{if(p.eq!=null)APP.eqSnap[p.pid]=Math.max(APP.eqSnap[p.pid]||0,p.eq)})}
 }
 
 /* 相手の席を、スクロールなしで全員1画面に収める。
