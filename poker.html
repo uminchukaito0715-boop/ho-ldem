@@ -879,6 +879,8 @@ html[data-scr="other"] #bgx{background:linear-gradient(180deg,rgba(6,5,4,.66),rg
 /* ---- デモ：大きい役 ---- */
 .fx-banner.bigh .fxbig{color:transparent;background:linear-gradient(180deg,#fff7d6,#f6e4a6 30%,#d9b25c 60%,#8a6420);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 18px rgba(246,228,166,.8))}
 .fx-banner.badbeat .fxbig{color:#ff8a7a;filter:drop-shadow(0 0 16px rgba(196,40,28,.9))}
+.watch-link{align-self:center;background:none;border:0;padding:4px 8px;color:var(--gold);font-size:.82rem;text-decoration:underline;text-underline-offset:3px}
+.watch-link:disabled{opacity:.4}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 
@@ -1151,7 +1153,7 @@ function lobbyList(){
   const remotes=Object.entries(APP.known).filter(([pid])=>APP.present.has(pid)).sort((a,b)=>a[1].first-b[1].first).map(([pid,k])=>({pid,name:k.name,kind:'human'}));
   return[me,...remotes,...APP.lobbyCpus].slice(0,MAXP);
 }
-function lobbyDoc(){return{v:1,epoch:APP.epoch||0,status:'lobby',hostPid:APP.pid,hostPub:APP.keys.pub,settings:{...setupCfg},players:lobbyList(),updatedAt:Date.now()}}
+function lobbyDoc(){return{v:1,epoch:APP.epoch||0,watchers:APP.watchers||0,status:'lobby',hostPid:APP.pid,hostPub:APP.keys.pub,settings:{...setupCfg},players:lobbyList(),updatedAt:Date.now()}}
 async function buildDoc(){
   const V=viewFromG();
   V.v=1;V.epoch=APP.epoch||0;V.hostPid=APP.pid;V.hostPub=APP.keys.pub;V.settings={...G.cfg};V.updatedAt=Date.now();
@@ -1170,7 +1172,7 @@ function enterRoom(){
   leaveRoomListeners();
   APP.unsubPeers=NET.onPeers(peers=>APP.role==='host'?onPeersHost(peers):onPeersPlayer(peers),()=>{APP.connected=false;render()});
   APP.unsubConn=NET.onConnection(c=>{APP.connected=c;if(APP.screen==='game'||APP.screen==='lobby')render()});
-  NET.presence({t:APP.hash,pid:APP.pid,name:APP.name,pk:APP.keys.pub,host:APP.role==='host',act:null}).catch(()=>{});
+  NET.presence({t:APP.hash,pid:APP.pid,name:APP.name,pk:APP.keys.pub,host:APP.role==='host',watch:!!APP.spectator,act:null}).catch(()=>{});
   if(APP.role==='host')watchAsHost();
 }
 function leaveRoomListeners(){
@@ -1185,17 +1187,18 @@ function onPeersPlayer(peers){
   render();
 }
 function onPeersHost(peers){
-  const now=new Set();const acts={};const rebuys={};
+  const now=new Set();const acts={};const rebuys={};let watchers=0;
   peers.forEach(p=>{
     if(p.sameTab)return;
     const pr=presenceOf(p);if(!pr||pr.host||pr.pid===APP.pid||!validPk(pr.pk))return;
+    if(pr.watch){watchers++;return} // 観戦者：席は作らない
     now.add(pr.pid);
     const k=APP.known[pr.pid]||(APP.known[pr.pid]={first:Date.now()});
     k.name=String(pr.name).trim().slice(0,10)||'ゲスト';k.pk=pr.pk;
     if(pr.act)acts[pr.pid]=pr.act;
     if(typeof pr.rebuy==='number')rebuys[pr.pid]=pr.rebuy;
   });
-  APP.present=now;
+  APP.present=now;APP.watchers=watchers;
   if(!G){publish();render();return}
   // 別の識別番号で戻ってきた人（端末やブラウザを変えた・履歴を消した等）：同じ名前の「不在」の席があれば、その席にチップごと戻す
   now.forEach(pid=>{
@@ -1283,6 +1286,7 @@ function renderHome(){
     <p class="note">${ok
       ?'みんなで同じ合言葉を入れると同じテーブルに着きます。友達にはこのページのリンクと合言葉を伝えてください。手札は暗号化されて本人のスマホにだけ表示されます。'
       :caps.ready?(window.claude?'このリンクでは、招待されてサインインしている人しかオンライン対戦できません。だれでも遊べる版のURLを開いてください。':'このブラウザではオンライン対戦が使えません（https のページで開いてください）。'):'接続を準備しています…'}</p>
+    <button class="watch-link" id="h-watch" ${ok&&!APP.busy?'':'disabled'}>観戦だけする（ゲームには参加しない）</button>
     <div class="or">または</div>
     <button class="wide-btn" id="h-local">この端末だけで遊ぶ（CPU・回し遊び）</button>
     </div>
@@ -1290,7 +1294,8 @@ function renderHome(){
   const grab=()=>{APP.name=$('#h-name').value.trim().slice(0,10);APP.pass=$('#h-pass').value.trim();store.set('holdem-name',APP.name)};
   const go=f=>()=>{grab();if(!APP.name){APP.err='名前を入れてください';return renderHome()}if(APP.pass.length<2){APP.err='合言葉を2文字以上で入れてください';return renderHome()}APP.err='';f()};
   $('#h-host').onclick=go(hostRoom);
-  $('#h-join').onclick=go(joinRoom);
+  $('#h-join').onclick=go(()=>joinRoom(false));
+  $('#h-watch').onclick=go(()=>joinRoom(true));
   $('#h-local').onclick=()=>{grab();APP.err='';APP.role='local';if(APP.name)setupRows[0].name=APP.name;APP.screen='local-setup';render()};
   fitHome();
 }
@@ -1334,10 +1339,11 @@ async function hostRoom(){
     APP.busy=false;APP.screen='lobby';enterRoom();publish();render();
   }catch(e){console.warn(e);APP.busy=false;APP.role=null;APP.err='部屋を作れませんでした。通信状況を確認して、もう一度試してください。';renderHome()}
 }
-async function joinRoom(){
+async function joinRoom(watch){
   APP.busy=true;renderHome();
   try{
     await prepare();
+    APP.spectator=!!watch;
     APP.role='player';APP.S=null;APP.myCards=null;APP.myCt=null;APP.actedTurn=-1;APP.screen='lobby';APP.busy=false;
     enterRoom();
     APP.hoTick=setInterval(hostWatch,2000);
@@ -1372,7 +1378,7 @@ function leaveOnline(){
     if(n.kind==='mqtt')n.close();
   })();
   wDirty=false;
-  APP.role=null;APP.S=null;G=null;APP.sheet=null;APP.screen='home';render();
+  APP.role=null;APP.S=null;G=null;APP.sheet=null;APP.spectator=false;APP.screen='home';render();
 }
 
 /* ---------- screens: local setup ---------- */
@@ -1495,6 +1501,7 @@ addEventListener('resize',()=>{if(APP.screen==='lobby')fitLobby()});
 function lobbyWaitHTML(){
   if(!APP.S)return'部屋を探しています…（ホストが同じ合言葉で部屋を作ると自動で入れます）';
   if(APP.hostHere===false)return'ホストがいません。ホストが戻るか、同じ合言葉で部屋を作り直すのを待っています…';
+  if(APP.spectator)return'観戦モードです。ゲームが始まると、場のカードと全員の動きが見られます（手札は見えません）';
   if(APP.S.players&&!APP.S.players.some(p=>p.pid===APP.pid))return APP.S.players.length>=MAXP?`満員です（最大${MAXP}人）。空きが出ると入れます`:'参加者に追加されるのを待っています…';
   return'ホストのスタートを待っています…';
 }
@@ -2116,7 +2123,7 @@ function viewFromG(){
   return{status:G.phase==='over'?'over':'playing',handNo:G.handNo,sb:G.sb,bb:G.bb,dealer:G.dealer,sbI:G.sbI,bbI:G.bbI,sbSeat:G.sbSeat,street:G.street,
     board:G.board.map(key),cur:G.cur,turnId:G.turnId,currentBet:G.currentBet,minRaise:G.minRaise,phase:G.phase==='cover'?'play':G.phase,
     showdown:G.showdown,tabled:G.tabled,lastAggr:G.lastAggr,winCards:[...G.winCards],say:G.say,sayN:G.sayN,log:G.log.slice(-60),pending:G.pending.map(q=>q.name),rebuy:!!G.cfg.rebuy,rebuyChips:G.cfg.chips,
-    pots:G.phase==='play'&&G.handNo>0?computePots().map(p=>({amount:p.amount,n:p.eligible.length})):[],potResults:G.potResults||[],lastHand:G.lastHand||null,ended:!!G.ended,tally:{max:(G.tally||{}).max||null,best:(G.tally||{}).best||null,st:G.aiS||{}},
+    pots:G.phase==='play'&&G.handNo>0?computePots().map(p=>({amount:p.amount,n:p.eligible.length})):[],potResults:G.potResults||[],watchers:APP.role==='host'?APP.watchers||0:0,lastHand:G.lastHand||null,ended:!!G.ended,tally:{max:(G.tally||{}).max||null,best:(G.tally||{}).best||null,st:G.aiS||{}},
     players:G.players.map(p=>({pid:p.pid,name:p.name,kind:p.kind==='cpu'?'cpu':'human',chips:p.chips,bet:p.bet,total:p.total,folded:p.folded,allin:p.allin,acted:p.acted,actedBet:p.actedBet,
       out:p.out,kicked:p.kicked,waitBB:p.waitBB,missedBB:p.missedBB,shown:p.shown,mucked:p.mucked,lastAction:p.lastAction,won:p.won,bestName:p.best&&(p.shown||G.tabled)?p.best.name:'',rebuys:p.rebuys,lastRebuy:p.lastRebuy,eq:G.eq&&G.phase==='play'?G.eq[p.id]??null:null,
       show:p.hand.length&&!p.out&&!p.folded&&((G.showdown&&p.shown)||G.tabled||spect)?p.hand.map(key):(spect&&p.hand.length?p.hand.map(key):null)}))};
@@ -2255,7 +2262,7 @@ function meHTML(V,i){
   if(i<0){
     let msg='人間プレイヤーの番になると、ここに手札が出ます';
     if(APP.role==='local'&&!localHumans().length)msg='観戦モード：全員CPUで対戦中';
-    if(APP.role==='player')msg=(V.pending||[]).length?'次のハンドから参加します':'観戦中です';
+    if(APP.role==='player')msg=APP.spectator?'観戦中です（プレイヤーの手札は見えません）':(V.pending||[]).length?'次のハンドから参加します':'観戦中です';
     return`<div class="me"><div class="info"><span class="wait">${msg}</span></div></div>`;
   }
   const p=V.players[i];const cards=myCards(V,i);
@@ -2713,7 +2720,7 @@ function renderGame(){
     <div class="top">
       <span class="logo-mini" role="img" aria-label="Hold'em"></span>
       ${APP.role!=='local'?`<span class="pass"><span class="dot ${APP.connected?'':'off'}"></span>${esc(APP.pass)}</span>`:''}
-      <span class="meta"><span>#<b class="num">${V.handNo}</b></span><span>BB <b class="num">${fmt(V.bb)}</b></span><span><b class="num">${alive}</b>人</span></span>
+      <span class="meta"><span>#<b class="num">${V.handNo}</b></span><span>BB <b class="num">${fmt(V.bb)}</b></span><span><b class="num">${alive}</b>人</span>${V.watchers?`<span>観戦<b class="num">${V.watchers}</b></span>`:''}${APP.spectator?'<span class="tag c">観戦中</span>':''}</span>
       <button class="icon-btn ${FX.on?'':'off'}" id="snd" aria-label="${FX.on?'音を消す':'音を出す'}"><i class="ico ico-snd"></i></button>
       <button class="ledger-btn" id="menu" aria-label="収支を見る">収支${i>=0?`<b class="num ${ledger(V,V.players[i]).net>0?'plus':ledger(V,V.players[i]).net<0?'minus':''}">${signed(ledger(V,V.players[i]).net)}</b>`:''}<i class="ico ico-stats"></i></button>
     </div>
