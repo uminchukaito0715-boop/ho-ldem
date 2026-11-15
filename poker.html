@@ -1355,6 +1355,40 @@ html body #app .home .wide-btn{height:54px!important;background:linear-gradient(
 /* 結果の文：勝った人と役名のあいだで折り返す */
 .results .w{text-wrap:balance}
 .results .w .rh{display:inline-block;white-space:nowrap}
+/* ホストの「フォールド扱い」「退席させる」：メニューの中に置き、2回押して実行 */
+.skiphint{display:block;font-size:.7rem;font-weight:500;color:var(--muted);margin-top:2px}
+.kick{gap:8px}
+.kick button{flex:none;min-height:38px;padding:6px 12px!important;border-radius:10px!important;border:1.5px solid rgba(255,255,255,.45)!important;color:#fff!important;font-weight:700;font-size:.78rem!important}
+.kick button.armed{background:var(--red)!important;border-color:#fff!important}
+/* ホストの「フォールド扱い」：横にスライドして実行するつまみ */
+.slide{--p:0;grid-column:1/-1;position:relative;height:46px;border-radius:999px;background:#1a1a1e;border:2px solid #111;box-shadow:inset 0 2px 6px rgba(0,0,0,.7),0 0 0 1.5px rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:pan-y}
+.slide::before{content:'';position:absolute;left:0;top:0;bottom:0;width:calc(27px + (100% - 54px)*var(--p));background:linear-gradient(90deg,rgba(224,38,45,.25),rgba(224,38,45,.75));border-radius:999px}
+.slide-txt{position:relative;padding:0 14px 0 56px;font-size:.78rem;font-weight:700;color:#cfcfd6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;opacity:calc(1 - var(--p)*1.5)}
+.slide-knob{position:absolute;left:4px;top:4px;bottom:4px;width:46px;border-radius:999px;background:linear-gradient(180deg,#fff,#d8d8de);color:#111;display:grid;place-items:center;font-size:1.1rem;font-weight:900;line-height:1;touch-action:none;cursor:grab;box-shadow:0 2px 0 #000}
+/* 右上は「収支」と「設定」の2つのボタン。音の切り替えは設定の中 */
+.ico-gear{display:block;width:22px;height:22px;margin:auto;background:#fff;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z'/%3E%3C/svg%3E") center/contain no-repeat}
+.sheet .plain.setrow{display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex:none}
+.sheet .plain.setrow b{min-width:3.6em;text-align:center;padding:3px 10px;border-radius:999px;font-size:.82rem;border:1.5px solid rgba(255,255,255,.5)}
+.sheet .plain.setrow b.on{background:#fff;color:#111;border-color:#fff}
+.sheet .plain.setrow b.off{color:var(--muted)}
+/* 設定の追加項目：ブラインド変更・役の強さ一覧・招待リンク */
+.sheet .plain.setrow:disabled{display:flex!important;padding:2px 16px!important}
+.sheet .plain.setrow:disabled b{border:0;padding:0;min-width:0}
+.sheet div.plain.setrow{height:auto;min-height:50px;padding:6px 10px 6px 16px}
+.setrow.blinds>span:first-child{display:flex;flex-direction:column;align-items:flex-start;line-height:1.3}
+.setrow.blinds small{font-size:.74rem;font-weight:500;color:var(--muted);font-family:var(--f-body)}
+.bbtns{display:flex;gap:6px;flex:none}
+.bbtns button{min-width:56px;height:38px;border-radius:10px;border:1.5px solid rgba(255,255,255,.5);color:#fff;font-weight:700;font-size:.82rem}
+.bbtns button:disabled{opacity:.3}
+.handguide ol{margin:6px 0 0;padding:0;list-style:none;counter-reset:hg;display:flex;flex-direction:column;gap:6px}
+.handguide li{counter-increment:hg;display:grid;grid-template-columns:1.4em 1fr;column-gap:6px;align-items:baseline}
+.handguide li::before{content:counter(hg);grid-row:1/4;font-family:var(--f-num);color:var(--red)}
+.handguide li b{color:#fff;font-size:.86rem}
+.handguide li small{font-size:.74rem;line-height:1.4}
+.handguide .hg{display:flex;gap:3px;margin:1px 0}
+.handguide .hg i{font-style:normal;font-weight:800;font-size:.76rem;min-width:2.1em;text-align:center;padding:1px 0;border-radius:4px;background:#fff;color:#111}
+.handguide .hg i.red{color:#d2222a}
+.lobby #l-invite{flex:none}
 </style>
 </head><body>
 <div id="bgx" aria-hidden="true"></div>
@@ -1366,13 +1400,27 @@ const $=s=>document.querySelector(s);
 const $$=s=>document.querySelectorAll(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ja-JP');
-const buzz=ms=>{try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
+const buzz=ms=>{try{VIB.on&&navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+/* 設定：振動と「画面を消さない」。どちらもこの端末に保存する */
+const VIB={on:store.get('holdem-vib')!=='0'};
+const WAKE={on:store.get('holdem-wake')!=='0',lock:null};
+async function wakeSync(){
+  if(!navigator.wakeLock)return;
+  const want=WAKE.on&&APP.screen==='game'&&document.visibilityState==='visible';
+  try{
+    if(want&&!WAKE.lock){const l=await navigator.wakeLock.request('screen');WAKE.lock=l;l.addEventListener('release',()=>{if(WAKE.lock===l)WAKE.lock=null})}
+    else if(!want&&WAKE.lock){const l=WAKE.lock;WAKE.lock=null;await l.release()}
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{try{wakeSync()}catch(e){}});
 const MAXP=9; // 楕円テーブルに並べられる人数
 const SUIT={s:'♠',h:'♥',d:'♦',c:'♣'};
 const RL=r=>({10:'10',11:'J',12:'Q',13:'K',14:'A'}[r]||String(r));
 const STREET_JP={preflop:'プリフロップ',flop:'フロップ',turn:'ターン',river:'リバー',showdown:'ショーダウン'};
 const HAND_JP=['ハイカード','ワンペア','ツーペア','スリーカード','ストレート','フラッシュ','フルハウス','フォーカード','ストレートフラッシュ'];
+const HAND_GUIDE=[['ロイヤルフラッシュ','As Ks Qs Js 10s','同じマークの 10・J・Q・K・A'],['ストレートフラッシュ','9h 8h 7h 6h 5h','同じマークで数字が5枚つながる'],['フォーカード','Qs Qh Qd Qc 4s','同じ数字が4枚'],['フルハウス','Ks Kh Kd 7c 7s','同じ数字3枚＋同じ数字2枚'],['フラッシュ','Ad Jd 8d 6d 3d','同じマークが5枚'],['ストレート','9s 8d 7h 6c 5s','数字が5枚つながる（A-2-3-4-5 もOK）'],['スリーカード','8s 8h 8d Kc 4s','同じ数字が3枚'],['ツーペア','Js Jd 5h 5c As','ペアが2組'],['ワンペア','10s 10h Ad 8c 3s','同じ数字が2枚'],['ハイカード','As Jd 8h 6c 3s','役なし。いちばん高いカードで勝負']];
+const handGuideHTML=()=>`<details class="poslegend handguide"><summary>役の強さ（強い順）</summary><ol>${HAND_GUIDE.map(([n,c,d])=>`<li><b>${n}</b><span class="hg">${c.split(' ').map(x=>{const su=x.slice(-1);return`<i class="${su==='h'||su==='d'?'red':''}">${x.slice(0,-1)}${SUIT[su]}</i>`}).join('')}</span><small>${d}</small></li>`).join('')}</ol><p class="note">同じ役どうしは数字の高いほうが勝ち。それも同じなら残りのカード（キッカー）で比べ、5枚とも同じなら引き分けです。マークに強弱はありません。</p></details>`;
 const CPU_NAMES=['ミナト','サクラ','ケンジ','ユイ','ソウタ','アオイ','レン','ハルカ','ダイチ','ミオ','カイト','ナナ','リク','ヒナ','ショウ','マイ','タクミ','エマ','ユウマ','リン','コウ','サラ'];
 
 /* ---------- cards & evaluation ---------- */
@@ -1447,6 +1495,15 @@ APP.cid=window.HOLDEM_CID||(()=>{
   return c;
 })();
 
+/* 招待リンク：「…/#room=合言葉」で開くと、合言葉が入った状態で始まる（# より後ろはサーバーには送られない） */
+try{const m=location.hash.match(/[#&]room=([^&]+)/);if(m){APP.pass=decodeURIComponent(m[1]).trim().slice(0,40);APP.invited=!!APP.pass}}catch(e){}
+const inviteURL=()=>location.href.split('#')[0].replace(/(poker|index)\.html$/,'')+'#room='+encodeURIComponent(APP.pass);
+async function shareInvite(b){
+  const url=inviteURL();
+  try{if(navigator.share){await navigator.share({title:"Hold'em",text:`ポーカーしよう！合言葉は「${APP.pass}」`,url});return}}catch(e){if(e&&e.name==='AbortError')return}
+  const done=t=>{if(!b)return;const o=b.dataset.t||(b.dataset.t=b.textContent);b.textContent=t;setTimeout(()=>{if(b.isConnected)b.textContent=o},2500)};
+  try{await navigator.clipboard.writeText(url);done('リンクをコピーしました')}catch(e){done('コピーできませんでした')}
+}
 /* --- 通信レイヤー：claude.ai 上では共有DB＋ルーム、それ以外の普通のサイトでは公開MQTTサーバー --- */
 let NET=null;
 const onlineOK=()=>!!(NET&&window.crypto&&crypto.subtle);
@@ -1762,7 +1819,7 @@ function renderHome(){
       <button class="big green" id="h-join" ${ok&&!APP.busy?'':'disabled'}>${HI.users}<span class="bl">部屋に入る<small>合言葉で参加</small></span></button>
     </div>
     <p class="note">${ok
-      ?'みんなで同じ合言葉を入れると同じテーブルに着きます。友達にはこのページのリンクと合言葉を伝えてください。手札は暗号化されて本人のスマホにだけ表示されます。'
+      ?APP.invited?'招待リンクの合言葉が入っています。名前を入れて「部屋に入る」を押してください。手札は暗号化されて本人のスマホにだけ表示されます。':'みんなで同じ合言葉を入れると同じテーブルに着きます。友達にはこのページのリンクと合言葉を伝えてください。手札は暗号化されて本人のスマホにだけ表示されます。'
       :caps.ready?(window.claude?'このリンクでは、招待されてサインインしている人しかオンライン対戦できません。だれでも遊べる版のURLを開いてください。':'このブラウザではオンライン対戦が使えません（https のページで開いてください）。'):'接続を準備しています…'}</p>
     <button class="watch-link" id="h-watch" ${ok&&!APP.busy?'':'disabled'}>観戦だけする（ゲームには参加しない）</button>
     <div class="or">または</div>
@@ -1936,7 +1993,8 @@ function renderLobby(){
       <small>合言葉</small>
       <div class="word ${[...APP.pass].length>10?'long':''}">${esc(APP.pass)}</div>
     </div>
-    <ol class="steps"><li>友達にこのページのリンクと合言葉を伝える</li><li>友達は「部屋に入る」で同じ合言葉を入れる</li><li>${host?'そろったらスタート':'ホストがスタートするのを待つ'}</li></ol>
+    <button class="wide-btn" id="l-invite">招待リンクを送る</button>
+    <ol class="steps"><li>上のボタンで友達に招待リンクを送る</li><li>友達は名前を入れて「部屋に入る」を押す</li><li>${host?'そろったらスタート':'ホストがスタートするのを待つ'}</li></ol>
     <p class="err" id="l-err">${esc(APP.err)}</p>
     ${host?rulesHTML():''}
     </div>
@@ -1948,6 +2006,7 @@ function renderLobby(){
   </div>
   <div class="foot">${host?`<button class="confirm" id="l-start" ${list.length<2?'disabled':''}>${list.length}人でスタート</button>`:`<div class="waiting" id="l-wait">${lobbyWaitHTML()}</div>`}</div>`;
   $('#l-back').onclick=leaveOnline;
+  $('#l-invite').onclick=e=>shareInvite(e.currentTarget);
   bindLobbyList();
   if(host){
     $('#rules').ontoggle=e=>{rulesOpen=e.target.open;fitLobby()};
@@ -2150,7 +2209,8 @@ function newHand(){
     G.phase='over';G.cur=-1;if(!G.cfg.rebuy)APP.sheet='result';changed();return;
   }
   G.handNo++;
-  if(G.every&&G.handNo>1&&(G.handNo-1)%G.every===0){G.sb*=2;G.bb*=2;log(`ブラインドが ${fmt(G.sb)}/${fmt(G.bb)} に上がりました`,'sys')}
+  if(G.nextBlinds){G.sb=G.nextBlinds.sb;G.bb=G.nextBlinds.bb;G.nextBlinds=null;log(`ブラインドを ${fmt(G.sb)}/${fmt(G.bb)} に変更しました`,'sys')}
+  else if(G.every&&G.handNo>1&&(G.handNo-1)%G.every===0){G.sb*=2;G.bb*=2;log(`ブラインドが ${fmt(G.sb)}/${fmt(G.bb)} に上がりました`,'sys')}
   placeBlinds();
   G.players.forEach(p=>{p.out=!(eligible(p)&&!p.waitBB);p.folded=p.out;p.lastAction=p.kicked?'退席':p.chips<=0?'脱落':p.waitBB?'BB待ち':''});
   const alive=G.players.filter(p=>!p.out);
@@ -2937,7 +2997,7 @@ function dockHTML(V,i){
       <button class="abtn fold" id="a-fold" ${mine&&toCall>0?'':'disabled'}>${ICON.spade}<span class="al">フォールド<em>FOLD</em></span></button>
       <button class="abtn call" id="a-call" ${mine?'':'disabled'}>${ICON.coins}<span class="al">${callLabel}${mine&&callAmt>0?`<small>${fmt(callAmt)}</small>`:''}<em>${mine&&toCall===0?'CHECK':'CALL'}</em></span></button>
       <button class="abtn raise" id="a-raise" ${rb?'':'disabled'}>${ICON.up}<span class="al">${V.currentBet===0?'ベット':'レイズ'}${rb?`<small>${fmt(rb.min)}〜</small>`:''}<em>${V.currentBet===0?'BET':'RAISE'}</em></span></button>
-      ${hostSkip?`<button class="abtn quiet" id="a-skip">${esc(p.name)} をフォールド扱いにする</button>`:''}
+      ${hostSkip?`<div class="slide" id="a-skip" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="${esc(p.name)} をフォールド扱いにする（右へスライド）"><span class="slide-txt">スライドで ${esc(p.name)} をフォールド扱い</span><span class="slide-knob" aria-hidden="true">»</span></div>`:''}
       ${rbs}
     </div>`;
 }
@@ -2953,6 +3013,11 @@ function snapAmt(v,rb,step=STEP){
 function presetValues(V,rb){
   const pot=potV(V);
   const v=x=>snapAmt(x,rb);
+  // プリフロップは、ポットの割合ではなく「いまの額の何倍か」で選ぶ（オープンなら BB の何倍、レイズされた後ならそのレイズ額の何倍）
+  if(V.street==='preflop'){
+    const base=Math.max(V.currentBet,V.bb),m=k=>snapAmt(base*k,rb,FINE);
+    return[['2倍',m(2)],['2.5倍',m(2.5)],['3倍',m(3)],['4倍',m(4)],['全部',rb.max]];
+  }
   return[['最小',rb.min],['½',v(V.currentBet+(pot+rb.toCall)/2)],['¾',v(V.currentBet+(pot+rb.toCall)*.75)],['ポット',v(V.currentBet+pot+rb.toCall)],['全部',rb.max]];
 }
 
@@ -2981,10 +3046,9 @@ function sheetHTML(V,i){
       <button class="confirm" id="amt-ok">${fmt(APP.amt)} で${label}</button>
     </div></div>`;
   }
-  if(APP.sheet==='menu'||APP.sheet==='quit'){
-    const kicks=APP.role==='host'&&G?G.players.filter(p=>p.kind==='remote'&&!p.kicked):[];
+  if(APP.sheet==='ledger'){
     const rows=V.players.map((p,j)=>({p,j,...ledger(V,p)})).sort((a,b)=>b.net-a.net);
-    return`<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-label="メニュー">
+    return`<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-label="収支">
       <div class="grab"></div>
       <button class="sheet-x" id="close-x" aria-label="閉じる">×</button>
       <h3>いまの収支</h3>
@@ -2999,18 +3063,33 @@ function sheetHTML(V,i){
         </div>`).join('')}
       </div>
       <p class="note">収支 = 持ち点 − 購入額（初期チップ＋リバイ分）。${V.phase==='play'?'進行中のハンドでポットに出したチップは、まだ持ち点に含めています。':''}</p>
-      ${APP.role!=='local'?`<h3>合言葉</h3><div style="text-align:center;font-weight:700;-webkit-user-select:text;user-select:text">${esc(APP.pass)}</div>`:''}
-      ${kicks.length?`<h3>参加者の管理</h3>${kicks.map(p=>`<div class="kick"><span>${esc(p.name)}${APP.present.has(p.pid)?'':'（不在）'}</span><button data-kick="${p.id}">退席させる</button></div>`).join('')}`:''}
-      ${(V.pending||[]).length?`<p class="note">次のハンドから参加：${V.pending.map(esc).join('、')}</p>`:''}
       ${V.lastHand?'<button class="plain" id="review">直前のハンドを振り返る</button>':''}
       <button class="plain" id="result">結果を見る</button>
+      <h3>この端末の通算戦績</h3>
+      ${recordsHTML()}
+      <button class="plain" id="close">閉じる</button>
+    </div></div>`;
+  }
+  if(APP.sheet==='menu'||APP.sheet==='quit'){
+    const kicks=APP.role==='host'&&G?G.players.filter(p=>p.kind==='remote'&&!p.kicked):[];
+    return`<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-label="設定">
+      <div class="grab"></div>
+      <button class="sheet-x" id="close-x" aria-label="閉じる">×</button>
+      <h3>設定</h3>
+      <button class="plain setrow" id="snd" role="switch" aria-checked="${FX.on}"><span>効果音</span><b class="${FX.on?'on':'off'}">${FX.on?'オン':'オフ'}</b></button>
+      <button class="plain setrow" id="vib" role="switch" aria-checked="${VIB.on}" ${navigator.vibrate?'':'disabled'}><span>振動</span><b class="${navigator.vibrate&&VIB.on?'on':'off'}">${navigator.vibrate?(VIB.on?'オン':'オフ'):'この端末は非対応'}</b></button>
+      <button class="plain setrow" id="wake" role="switch" aria-checked="${WAKE.on}" ${navigator.wakeLock?'':'disabled'}><span>画面を消さない</span><b class="${navigator.wakeLock&&WAKE.on?'on':'off'}">${navigator.wakeLock?(WAKE.on?'オン':'オフ'):'この端末は非対応'}</b></button>
+      ${APP.role!=='player'&&G&&V.status!=='over'?`<div class="plain setrow blinds"><span>ブラインド<small>${G.nextBlinds?`次のハンドから ${fmt(G.nextBlinds.sb)}/${fmt(G.nextBlinds.bb)}`:`いま ${fmt(G.sb)}/${fmt(G.bb)}`}</small></span><span class="bbtns"><button data-bl="0.5" ${(G.nextBlinds||G).sb<=1?'disabled':''}>半分</button><button data-bl="2">2倍</button></span></div>`:''}
+      ${APP.role!=='local'?`<h3>合言葉</h3><div style="text-align:center;font-weight:700;-webkit-user-select:text;user-select:text">${esc(APP.pass)}</div>`:''}
+      ${APP.role!=='local'?'<button class="plain" id="invite">招待リンクを送る</button>':''}
+      ${kicks.length?`<h3>参加者の管理</h3>${kicks.map(p=>`<div class="kick"><span>${esc(p.name)}${APP.present.has(p.pid)?'':'（不在）'}</span><button data-kick="${p.id}">退席させる</button></div>`).join('')}<p class="note">退席させる＝その人が戻ってくるまで配りません。2回押すと実行します。</p>`:''}
+      ${(V.pending||[]).length?`<p class="note">次のハンドから参加：${V.pending.map(esc).join('、')}</p>`:''}
+      <details class="poslegend"><summary>席の記号の意味</summary><dl><dt>D / BTN</dt><dd>ボタン。フロップ以降いちばん最後に行動できる有利な席</dd><dt>SB・BB</dt><dd>最初に決まった額（ブラインド）を出す席</dd><dt>UTG</dt><dd>プリフロップで最初に行動する席</dd><dt>HJ・CO</dt><dd>ボタンの2つ手前・1つ手前の席</dd></dl></details>
+      ${handGuideHTML()}
       ${APP.role!=='player'&&V.status!=='over'?`<button class="plain" id="endgame" ${V.phase==='done'?'':'disabled'}>${V.phase==='done'?'ゲームを終了する':'ゲームの終了はハンドのあとにできます'}</button>`:''}
       ${APP.sheet==='quit'
         ?`<button class="plain danger" id="quit-yes">${APP.role==='host'?'部屋を閉じて出る':APP.role==='player'?'部屋を出る':'やめて設定画面へ'}</button><button class="plain" id="quit-no">続ける</button>`
         :`<button class="plain danger" id="quit">${APP.role==='local'?'ゲームをやめる':'部屋を出る'}</button><button class="plain" id="close">閉じる</button>`}
-      <details class="poslegend"><summary>席の記号の意味</summary><dl><dt>D / BTN</dt><dd>ボタン。フロップ以降いちばん最後に行動できる有利な席</dd><dt>SB・BB</dt><dd>最初に決まった額（ブラインド）を出す席</dd><dt>UTG</dt><dd>プリフロップで最初に行動する席</dd><dt>HJ・CO</dt><dd>ボタンの2つ手前・1つ手前の席</dd></dl></details>
-      <h3>この端末の通算戦績</h3>
-      ${recordsHTML()}
     </div></div>`;
   }
   if(APP.sheet==='review'&&V.lastHand)return reviewHTML(V,i);
@@ -3352,8 +3431,8 @@ function renderGame(){
       <span class="logo-mini" role="img" aria-label="Hold'em"></span>
       ${APP.role!=='local'?`<span class="pass"><span class="dot ${APP.connected?'':'off'}"></span>${esc(APP.pass)}</span>`:''}
       <span class="meta"><span>#<b class="num">${V.handNo}</b></span><span>BB <b class="num">${fmt(V.bb)}</b></span><span><b class="num">${alive}</b>人</span>${V.watchers?`<span>観戦<b class="num">${V.watchers}</b></span>`:''}${APP.spectator?'<span class="tag c">観戦中</span>':''}</span>
-      <button class="icon-btn ${FX.on?'':'off'}" id="snd" aria-label="${FX.on?'音を消す':'音を出す'}"><i class="ico ico-snd"></i></button>
-      <button class="ledger-btn" id="menu" aria-label="メニュー（収支・振り返り・ゲームをやめる）">収支${i>=0?`<b class="num ${ledger(V,V.players[i]).net>0?'plus':ledger(V,V.players[i]).net<0?'minus':''}">${signed(ledger(V,V.players[i]).net)}</b>`:''}<i class="ico ico-stats ico-menu"></i></button>
+      <button class="ledger-btn" id="ledger-open" aria-label="収支を見る">収支${i>=0?`<b class="num ${ledger(V,V.players[i]).net>0?'plus':ledger(V,V.players[i]).net<0?'minus':''}">${signed(ledger(V,V.players[i]).net)}</b>`:''}<i class="ico ico-stats"></i></button>
+      <button class="icon-btn" id="menu" aria-label="設定（音・参加者の管理・ゲームをやめる）"><i class="ico ico-gear"></i></button>
     </div>
     ${banner?`<div class="banner">${esc(banner)}</div>`:''}
     <div class="mid">
@@ -3574,20 +3653,37 @@ function setAmt(V,i,v,step=STEP){
 function bindGame(V,i){
   const on=(id,f)=>{const el=$(id);if(el)el.onclick=f};
   on('#menu',()=>{APP.sheet='menu';render()});
+  on('#ledger-open',()=>{APP.sheet='ledger';render()});
+  on('#vib',()=>{VIB.on=!VIB.on;store.set('holdem-vib',VIB.on?'1':'0');if(VIB.on)buzz(30);render()});
+  on('#wake',()=>{WAKE.on=!WAKE.on;store.set('holdem-wake',WAKE.on?'1':'0');render()});
+  on('#invite',e=>shareInvite(e&&e.currentTarget));
+  $$('[data-bl]').forEach(b=>b.onclick=()=>{if(!G||APP.role==='player')return;const c=G.nextBlinds||{sb:G.sb,bb:G.bb},k=+b.dataset.bl;if(k<1&&c.sb<=1)return;const sb=Math.max(1,Math.round(c.sb*k)),bb=Math.max(2,Math.round(c.bb*k));G.nextBlinds=sb===G.sb&&bb===G.bb?null:{sb,bb};buzz(8);render()});
   on('#snd',()=>{FX.on=!FX.on;store.set('holdem-sound',FX.on?'1':'0');if(FX.on){audio();SFX.chip()}render()});
   on('#close',()=>{APP.sheet=null;render()});
   on('#close-x',()=>{APP.sheet=null;render()});
   on('#quit',()=>{APP.sheet='quit';render()});
   on('#quit-no',()=>{APP.sheet=null;render()});
   on('#quit-yes',()=>{APP.sheet=null;if(APP.role==='local'){clearTimeout(G.timer);G=null;APP.screen='local-setup';render()}else leaveOnline()});
-  $$('[data-kick]').forEach(b=>b.onclick=()=>{APP.sheet=null;kickPlayer(+b.dataset.kick)});
+  const arm=(b,fn)=>{if(b.dataset.armed){fn();return}b.dataset.armed='1';const t=b.textContent;b.textContent='もう一度押すと実行';b.classList.add('armed');setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent=t;b.classList.remove('armed')}},3000)};
+  $$('[data-kick]').forEach(b=>b.onclick=()=>arm(b,()=>{APP.sheet=null;kickPlayer(+b.dataset.kick)}));
+  /* フォールド扱い：つまみを右端まで引いて離すと実行。途中で離すと戻る */
+  const sk=$('#a-skip');
+  if(sk){
+    const kn=sk.querySelector('.slide-knob');let x0=null,max=0;
+    const pos=e=>Math.max(0,Math.min(e.clientX-x0,max));
+    const back=()=>{x0=null;kn.style.transition='transform .2s';kn.style.transform='';sk.style.setProperty('--p',0);setTimeout(()=>{kn.style.transition=''},220)};
+    kn.onpointerdown=e=>{x0=e.clientX;max=sk.clientWidth-kn.offsetWidth-8;try{kn.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()};
+    kn.onpointermove=e=>{if(x0==null)return;const d=pos(e);kn.style.transform=`translateX(${d}px)`;sk.style.setProperty('--p',max>0?d/max:0)};
+    kn.onpointerup=e=>{if(x0==null)return;const d=pos(e);if(max>0&&d>=max*.9&&APP.role==='host'&&G&&G.phase==='play'&&G.cur>=0&&G.players[G.cur].kind==='remote'){x0=null;buzz(20);act('fold')}else back()};
+    kn.onpointercancel=back;
+  }
   const scrim=$('#scrim');
   if(scrim)scrim.onclick=e=>{if(e.target===scrim){APP.sheet=null;render()}};
   on('#reveal',()=>{G.phase='play';G.reveal=G.cur;buzz(25);render()});
   on('#next',newHand);
   on('#review',()=>{APP.sheet='review';render()});
   on('#result',()=>{APP.sheet='result';render()});
-  on('#to-menu',()=>{APP.sheet='menu';render()});
+  on('#to-menu',()=>{APP.sheet='ledger';render()});
   on('#endgame',endGame);
   on('#share',e=>shareResult(V,e&&e.currentTarget));
   on('#again',()=>{
@@ -3596,12 +3692,11 @@ function bindGame(V,i){
   });
   on('#a-fold',()=>doAction('fold'));
   on('#a-call',()=>doAction('call'));
-  on('#a-skip',()=>act('fold'));
   $$('[data-rebuy]').forEach(b=>b.onclick=()=>doRebuy(+b.dataset.rebuy));
   on('#a-raise',()=>{const rb=rbV(V,i);if(!rb)return;APP.amt=rb.min;APP.sheet='raise';render()});
   if(APP.sheet==='raise'&&$('#amt-r')){
     $('#amt-r').oninput=e=>setAmt(V,i,+e.target.value);
-    $$('.preset').forEach(b=>b.onclick=()=>{setAmt(V,i,+b.dataset.v);buzz(8)});
+    $$('.preset').forEach(b=>b.onclick=()=>{setAmt(V,i,+b.dataset.v,FINE);buzz(8)});
     $$('.nudge button').forEach(b=>b.onclick=()=>{
       const d=+b.dataset.d,a=Math.abs(d);
       setAmt(V,i,d>0?Math.floor(APP.amt/a)*a+a:Math.ceil(APP.amt/a)*a-a,FINE);buzz(6);
@@ -3625,6 +3720,7 @@ function render(){
   else if(s==='local-setup')renderSetup();
   else if(s==='lobby')renderLobby();
   else renderGame();
+  wakeSync();
 }
 render();
 </script>
