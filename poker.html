@@ -1241,15 +1241,15 @@ html body #app .home .wide-btn{height:54px!important;background:linear-gradient(
 /* 右上は「収支」と「設定」の2つのボタン。音の切り替えは設定の中 */
 .ico-gear{width:22px;height:22px;background:#fff;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z'/%3E%3C/svg%3E") center/contain no-repeat}
 .sheet .plain.setrow{display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex:none}
-.sheet .plain.setrow b{min-width:3.6em;padding:3px 10px;border-radius:999px;font-size:.82rem;border:1.5px solid rgba(255,255,255,.5)}
+.sheet .plain.setrow b{flex:none;white-space:nowrap;min-width:3.6em;padding:3px 10px;border-radius:999px;font-size:.82rem;border:1.5px solid rgba(255,255,255,.5)}
 .sheet .plain.setrow b.on{background:#fff;color:#111;border-color:#fff}
 .sheet .plain.setrow b.off{color:var(--muted)}
 /* 設定の追加項目：ブラインド変更・役の強さ一覧・招待リンク */
 .sheet .plain.setrow:disabled{display:flex!important;padding:2px 16px!important}
 .sheet .plain.setrow:disabled b{border:0;padding:0;min-width:0}
 .sheet div.plain.setrow{height:auto;min-height:50px;padding:6px 10px 6px 16px}
-.setrow.blinds>span:first-child{display:flex;flex-direction:column;align-items:flex-start;line-height:1.3}
-.setrow.blinds small{font-size:.74rem;font-weight:500;color:var(--muted);}
+.setrow>span:first-child{display:flex;flex-direction:column;align-items:flex-start;line-height:1.3;text-align:left}
+.setrow small{font-size:.74rem;font-weight:500;color:var(--muted);}
 .bbtns{display:flex;gap:6px;flex:none}
 .bbtns button{min-width:56px;height:38px;border-radius:10px;border:1.5px solid rgba(255,255,255,.5);color:#fff;font-size:.82rem}
 .bbtns button:disabled{opacity:.3}
@@ -3176,6 +3176,9 @@ function sheetHTML(V,i){
       <button class="sheet-x" id="close-x" aria-label="閉じる">×</button>
       <h3>設定</h3>
       <button class="plain setrow" id="snd" role="switch" aria-checked="${FX.on}"><span>効果音</span><b class="${FX.on?'on':'off'}">${FX.on?'オン':'オフ'}</b></button>
+      <button class="plain setrow" id="voice" role="switch" aria-checked="${VOICE.on}"><span>読み上げ<small>レイズ・WIN などを声で</small></span><b class="${VOICE.on?'on':'off'}">${VOICE.on?'オン':'オフ'}</b></button>
+      ${VOICE.on?`<div class="plain setrow blinds"><span>声の大きさ<small>${VOICE.vol}%</small></span><span class="bbtns"><button data-vv="-20" ${VOICE.vol<=0?'disabled':''} aria-label="小さく">－</button><button data-vv="20" ${VOICE.vol>=100?'disabled':''} aria-label="大きく">＋</button></span></div>
+      <button class="plain setrow" id="vdetail" role="switch" aria-checked="${VOICE.detail}" ${SS?'':'disabled'}><span>名前・金額も読む<small>端末の声で読みます</small></span><b class="${SS&&VOICE.detail?'on':'off'}">${!SS?'この端末は非対応':VOICE.detail?'オン':'オフ'}</b></button>`:''}
       <button class="plain setrow" id="vib" role="switch" aria-checked="${VIB.on}" ${navigator.vibrate?'':'disabled'}><span>振動</span><b class="${navigator.vibrate&&VIB.on?'on':'off'}">${navigator.vibrate?(VIB.on?'オン':'オフ'):'この端末は非対応'}</b></button>
       <button class="plain setrow" id="wake" role="switch" aria-checked="${WAKE.on}" ${navigator.wakeLock?'':'disabled'}><span>画面を消さない</span><b class="${navigator.wakeLock&&WAKE.on?'on':'off'}">${navigator.wakeLock?(WAKE.on?'オン':'オフ'):'この端末は非対応'}</b></button>
       ${APP.role!=='player'&&G&&V.status!=='over'?`<div class="plain setrow blinds"><span>ブラインド<small>${G.nextBlinds?`次のハンドから ${fmt(G.nextBlinds.sb)}/${fmt(G.nextBlinds.bb)}`:`いま ${fmt(G.sb)}/${fmt(G.bb)}`}</small></span><span class="bbtns"><button data-bl="0.5" ${(G.nextBlinds||G).sb<=1?'disabled':''}>半分</button><button data-bl="2">2倍</button></span></div>`:''}
@@ -3185,6 +3188,7 @@ function sheetHTML(V,i){
       ${(V.pending||[]).length?`<p class="note">次のハンドから参加：${V.pending.map(esc).join('、')}</p>`:''}
       <details class="poslegend"><summary>席の記号の意味</summary><dl><dt>D / BTN</dt><dd>ボタン。フロップ以降いちばん最後に行動できる有利な席</dd><dt>SB・BB</dt><dd>最初に決まった額（ブラインド）を出す席</dd><dt>UTG</dt><dd>プリフロップで最初に行動する席</dd><dt>HJ・CO</dt><dd>ボタンの2つ手前・1つ手前の席</dd></dl></details>
       ${handGuideHTML()}
+      <details class="poslegend"><summary>クレジット</summary><p class="note">${VOICE_CREDIT.map(esc).join('<br>')}</p></details>
       ${APP.role!=='player'&&V.status!=='over'?`<button class="plain" id="endgame" ${V.phase==='done'?'':'disabled'}>${V.phase==='done'?'ゲームを終了する':'ゲームの終了はハンドのあとにできます'}</button>`:''}
       ${APP.sheet==='quit'
         ?`<button class="plain danger" id="quit-yes">${APP.role==='host'?'部屋を閉じて出る':APP.role==='player'?'部屋を出る':'やめて設定画面へ'}</button><button class="plain" id="quit-no">続ける</button>`
@@ -3631,15 +3635,15 @@ function renderGame(){
 const FX={on:store.get('holdem-sound')!=='0',ctx:null};
 const SVG_SND_ON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
 const SVG_SND_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></svg>';
-function audio(){
-  if(!FX.on)return null;
+/* 音を鳴らす土台。効果音と読み上げの両方で使う（効果音がオフでも読み上げには使う） */
+function actx(){
   try{
-    if(!FX.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;FX.ctx=new C();sndLoad(FX.ctx)}
+    if(!FX.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;FX.ctx=new C();sndLoad(FX.ctx);try{voiceDecode()}catch(e){}}
     if(FX.ctx.state==='suspended')FX.ctx.resume();
     return FX.ctx;
   }catch(e){return null}
 }
-document.addEventListener('pointerdown',()=>{if(FX.on)audio()},{passive:true,capture:true}); // スマホは最初のタップで音を解禁
+function audio(){return FX.on?actx():null}
 /* 音源は最初の音が鳴るときに読み込む。読めるまで・読めないときは合成音で鳴らす */
 const BUF={};
 function sndLoad(a){
@@ -3690,6 +3694,108 @@ const SFX={
     const n=me?[523,659,784,1047,1319]:[523,659,784,1047];n.forEach((f,k)=>tone(f,.4,'triangle',.16,w+k*.1));for(let k=0;k<(me?9:5);k++)SFX.chip(w+.35+k*.07);
   },
 };
+/* ===== 読み上げ（AivisSpeech で作った音声ファイル） =====
+   ・音声は sounds/ フォルダに置く。下の VOICE_LINES が「キー：[ファイル名, 読み上げる文章]」の対応表
+   ・セリフを足すとき：sounds/ に mp3 を置く → VOICE_LINES に1行足す → 鳴らしたい所で voice('キー')
+   ・ファイルが無い・読めないときは、端末の読み上げ機能（Web Speech）で同じ文章を言う
+   ・名前や金額など毎回変わる部分は音声ファイルにしない（設定「名前・金額も読む」がオンのときだけ端末の声で言う） */
+const VOICE_DIR='sounds/';
+const VOICE_LINES={
+  check:['check.mp3','チェック'],
+  call:['call.mp3','コール'],
+  bet:['bet.mp3','ベット'],
+  raise:['raise.mp3','レイズ'],
+  fold:['fold.mp3','フォールド'],
+  allin:['allin.mp3','オールイン！'],
+  you_win:['you_win.mp3','ユーウィン！'],
+  winner:['winner.mp3','ウィナー'],
+  lose:['lose.mp3','ルーズ…'],
+  reversal:['reversal.mp3','逆転！'],
+  bad_beat:['bad_beat.mp3','バッドビート…'],
+  main_pot:['main_pot.mp3','メインポット'],
+  side_pot:['side_pot.mp3','サイドポット'],
+  full_house:['full_house.mp3','フルハウス！'],
+  four_of_a_kind:['four_of_a_kind.mp3','フォーカード！'],
+  straight_flush:['straight_flush.mp3','ストレートフラッシュ！'],
+  royal_flush:['royal_flush.mp3','ロイヤルフラッシュ！'],
+};
+/* クレジット（設定画面のいちばん下に出る）。1行ずつ書く */
+const VOICE_CREDIT=['音声：AivisSpeech','音声モデル：まお（作者：オズチャット -Oz Chat-・Trippy／CV：ねゆたろ）','AivisSpeech: まお'];
+/* 画面に出る大きな文字・アクション → どのセリフを鳴らすか */
+const BANNER_VOICE={'ALL IN':'allin','YOU WIN':'you_win','WINNER':'winner','LOSE':'lose','逆転！':'reversal','BAD BEAT':'bad_beat','メインポット':'main_pot',
+  'フルハウス':'full_house','フォーカード':'four_of_a_kind','ストレートフラッシュ':'straight_flush','ロイヤルフラッシュ':'royal_flush'};
+const bannerVoice=t=>BANNER_VOICE[t]||(/^サイドポット/.test(t)?'side_pot':'');
+const ACT_VOICE={'フォールド':'fold','チェック':'check','コール':'call','ベット':'bet','レイズ':'raise'};
+const actVoice=a=>{const m=a.match(/^(フォールド|チェック|コール|ベット|レイズ)/);return m?ACT_VOICE[m[1]]:''};
+
+const VOICE={on:store.get('holdem-voice')!=='0',vol:(n=>Number.isFinite(n)?Math.min(100,Math.max(0,n)):100)(parseInt(store.get('holdem-voice-vol'),10)),
+  detail:store.get('holdem-voice-detail')==='1',v:null,raw:{},buf:{},bad:{},dec:{},q:[],busy:false,src:null};
+const SS=window.speechSynthesis&&window.SpeechSynthesisUtterance?speechSynthesis:null;
+function jaVoice(){if(VOICE.v)return VOICE.v;const vs=SS.getVoices().filter(v=>/^ja/i.test(v.lang));VOICE.v=vs.find(v=>v.localService)||vs[0]||null;return VOICE.v}
+/* ページを開いたらすぐ音声ファイルを読んでおく（鳴らすときに待たないように）。音にする作業は、音の土台ができてから */
+function voicePreload(){
+  for(const [k,[file]] of Object.entries(VOICE_LINES)){
+    if(VOICE.raw[k]||VOICE.buf[k]||VOICE.bad[k])continue;
+    try{fetch(VOICE_DIR+file).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(ab=>{VOICE.raw[k]=ab;voiceDecode()}).catch(()=>{VOICE.bad[k]=1})}catch(e){VOICE.bad[k]=1}
+  }
+}
+function voiceDecode(){
+  const a=FX.ctx;if(!a)return;
+  for(const k in VOICE.raw){
+    if(VOICE.buf[k]||VOICE.dec[k])continue;VOICE.dec[k]=1;
+    try{a.decodeAudioData(VOICE.raw[k],b=>{VOICE.buf[k]=b;delete VOICE.raw[k]},()=>{VOICE.bad[k]=1})}catch(e){VOICE.bad[k]=1}
+  }
+}
+/* 鳴らす：待ち行列に入れて1つずつ順番に。待ちが3つを超えたら古いものから捨て、ttl（ミリ秒）より古くなったものも捨てる */
+function voice(key,o={}){
+  if(!VOICE.on||!key||!VOICE_LINES[key]||document.hidden)return;
+  VOICE.q.push({key,t:Date.now(),ttl:o.ttl||2500});voiceTrim();voicePump();
+}
+function voiceSay(text,o={}){ // 毎回変わる部分（名前・金額）：設定がオンのときだけ、端末の声で
+  if(!VOICE.on||!VOICE.detail||!SS||!text||document.hidden)return;
+  VOICE.q.push({text,t:Date.now(),ttl:o.ttl||4000});voiceTrim();voicePump();
+}
+function voiceTrim(){while(VOICE.q.length>3)VOICE.q.shift()}
+function voicePump(){
+  if(VOICE.busy)return;
+  const now=Date.now(),Q=VOICE.q;
+  while(Q.length&&now-Q[0].t>Q[0].ttl)Q.shift();
+  const it=Q[0];if(!it)return;
+  if(it.key){
+    const k=it.key,b=VOICE.buf[k];
+    if(b){const a=actx();if(a){Q.shift();voicePlay(a,b);return}}
+    else if(!VOICE.bad[k]&&FX.ctx&&now-it.t<700){setTimeout(voicePump,80);return} // まだ読み込み中：少しだけ待つ
+    Q.shift();voiceSpeak(VOICE_LINES[k][1]);return; // ファイルが無い・読めない → 端末の声で
+  }
+  Q.shift();voiceSpeak(it.text);
+}
+function voiceDone(){VOICE.busy=false;VOICE.src=null;setTimeout(voicePump,60)}
+function voicePlay(a,b){
+  VOICE.busy=true;let fin=false;const done=()=>{if(!fin){fin=true;voiceDone()}};
+  try{
+    const s=a.createBufferSource(),g=a.createGain();s.buffer=b;g.gain.value=VOICE.vol/100;s.connect(g).connect(a.destination);
+    s.onended=done;VOICE.src=s;s.start();setTimeout(done,b.duration*1000+400);
+  }catch(e){done()}
+}
+function voiceSpeak(text){
+  if(!SS||!text){voiceDone();return}
+  VOICE.busy=true;let fin=false;const done=()=>{if(!fin){fin=true;voiceDone()}};
+  try{
+    const u=new SpeechSynthesisUtterance(text);u.lang='ja-JP';u.rate=1.15;u.pitch=1.05;u.volume=VOICE.vol/100;
+    const v=jaVoice();if(v)u.voice=v;u.onend=done;u.onerror=done;SS.speak(u);setTimeout(done,Math.max(2500,text.length*350));
+  }catch(e){done()}
+}
+function voiceStop(){VOICE.q.length=0;try{if(VOICE.src)VOICE.src.stop()}catch(e){}try{if(SS)SS.cancel()}catch(e){}VOICE.busy=false;VOICE.src=null}
+voicePreload();
+if(SS)SS.onvoiceschanged=()=>{VOICE.v=null};
+/* スマホは、画面をタップするまで音が出ない。最初のタップ（部屋を作る・入る・ひとりで遊ぶ のボタンも含む）で音の土台を作り、
+   iPhone 向けに読み上げ機能にも一度だけ無音で話させておく */
+function soundUnlock(){
+  if(FX.on||VOICE.on)actx();
+  if(VOICE.on&&SS&&!VOICE.ssOk){VOICE.ssOk=true;try{const u=new SpeechSynthesisUtterance(' ');u.volume=0;SS.speak(u)}catch(e){}}
+}
+document.addEventListener('pointerdown',soundUnlock,{passive:true,capture:true});
+document.addEventListener('click',soundUnlock,{passive:true,capture:true});
 const RM=window.matchMedia?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
 const centerOf=el=>{const r=el.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2]};
 const seatEl=j=>document.querySelector(`#app [data-j="${j}"]`);
@@ -3714,6 +3820,7 @@ function fxBanner(big,sub,kind=''){
   d.innerHTML=`<div class="fxbig ${art}">${esc(big)}</div>${sub?`<div class="sub">${esc(sub)}</div>`:''}`;
   const long=kind==='mewin'||kind==='lose'||kind==='gyaku'||kind==='';if(long)d.style.animationDuration='3s';
   fx.appendChild(d);setTimeout(()=>d.remove(),long?3100:1900);
+  voice(bannerVoice(big),{ttl:5000});if(sub)voiceSay(sub);
   if(kind==='mewin'){const f=document.createElement('div');f.className='flash-screen';fx.appendChild(f);setTimeout(()=>f.remove(),1000)}
 }
 function sparkle(){
@@ -3743,6 +3850,7 @@ function fxAfterRender(V,i){
       const q=P.acts[pid];if(!q||q.a===o.a||!o.a)continue;
       const a=o.a,el=seatEl(o.j);
       if(!/^\+/.test(a))bubble(el&&(el.querySelector('.oplate')||el),a);
+      {const vk=actVoice(a);if(vk){voice(vk);voiceSay(`${V.players[o.j].name}、${a.replace(/^\S+\s*/,'')}`)}} // オールインは「ALL IN」の文字が出るときに言う
       if(a.startsWith('フォールド')||a==='退席'||a==='マック')SFX.fold();
       else if(a.startsWith('チェック'))SFX.check();
       else if(a.startsWith('オールイン')){SFX.allin();fxBanner('ALL IN',V.players[o.j].name,'allin');buzz([40,30,40]);chipFly(el,pot,6)}
@@ -3826,6 +3934,9 @@ function bindGame(V,i){
   const on=(id,f)=>{const el=$(id);if(el)el.onclick=f};
   on('#menu',()=>{APP.sheet='menu';render()});
   on('#ledger-open',()=>{APP.sheet='ledger';render()});
+  on('#voice',()=>{VOICE.on=!VOICE.on;store.set('holdem-voice',VOICE.on?'1':'0');if(VOICE.on){soundUnlock();voice('raise')}else voiceStop();render()});
+  on('#vdetail',()=>{VOICE.detail=!VOICE.detail;store.set('holdem-voice-detail',VOICE.detail?'1':'0');if(VOICE.detail)voiceSay('ミナト、300');render()});
+  $$('[data-vv]').forEach(b=>b.onclick=()=>{VOICE.vol=Math.min(100,Math.max(0,VOICE.vol+ +b.dataset.vv));store.set('holdem-voice-vol',String(VOICE.vol));voiceStop();voice('call');render()});
   on('#vib',()=>{VIB.on=!VIB.on;store.set('holdem-vib',VIB.on?'1':'0');if(VIB.on)buzz(30);render()});
   on('#wake',()=>{WAKE.on=!WAKE.on;store.set('holdem-wake',WAKE.on?'1':'0');render()});
   on('#invite',e=>shareInvite(e&&e.currentTarget));
