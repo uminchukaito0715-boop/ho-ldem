@@ -739,6 +739,28 @@ html[data-scr="home"] #bgx{background:var(--a-stacks) left -24px bottom -14px/cl
 .oseat.hero .hole .card.deal{animation:dealme .5s cubic-bezier(.2,.8,.3,1.15) both;animation-delay:var(--d,0s)}
 
 .oseat.hero .oact{font-size:.68rem}
+/* オールイン演出：勝率の数字とバー（金＝単独で勝つ確率、しま＝引き分け、緑＝いちばん有利な人） */
+.oseat.haseq .oact{overflow:visible;max-width:none;min-height:0}
+.oeq{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:70px;padding:2px 5px 3px;border-radius:7px;background:rgba(0,0,0,.72);border:1.5px solid #000;box-shadow:0 2px 0 #000}
+.eqtx{display:flex;gap:4px;align-items:baseline;white-space:nowrap;line-height:1.1}
+.eqv{font-size:.66rem;font-weight:900;color:#fff}
+.eqt{font-size:.54rem;color:#cfd8dc}
+.eqbar{display:flex;width:100%;height:6px;border-radius:3px;background:#3a3a3a;overflow:hidden}
+.eqbar i{display:block;height:100%}
+.eqbar .w{background:linear-gradient(#ffe680,#f2b300)}
+.eqbar .t{background:repeating-linear-gradient(45deg,#c9d3d8 0 3px,#7c8c94 3px 6px)}
+.oeq.lead{border-color:#1fbf68}
+.oeq.lead .eqbar .w{background:linear-gradient(#8ff5b8,#1fbf68)}
+.oseat.hero .eqv{font-size:.74rem}
+/* 溜め：次にめくるカードの置き場所が光る。リバーは速く強く */
+.board .card.slot.hold{position:relative}
+.board .card.slot.hold::after{content:'';position:absolute;inset:-2px;border-radius:inherit;animation:roHold 1s ease-in-out infinite;pointer-events:none}
+.board .card.slot.hold.long::after{animation-duration:.6s}
+@keyframes roHold{0%,100%{box-shadow:0 0 0 2px rgba(255,210,63,.3),0 0 6px rgba(255,210,63,.2)}50%{box-shadow:0 0 0 3px #ffd23f,0 0 24px 7px rgba(255,210,63,.75)}}
+/* ポットを配っている人の名札が弾む */
+.oseat.potnow .oplate{animation:potNow .8s ease-in-out 2}
+@keyframes potNow{50%{transform:scale(1.08)}}
+@media (prefers-reduced-motion:reduce){.board .card.slot.hold::after,.oseat.potnow .oplate{animation:none}.board .card.slot.hold::after{box-shadow:0 0 0 3px #ffd23f}}
 .ocrown{background:var(--a-crown) center/contain no-repeat;z-index:2;}
 .felt-head{white-space:nowrap}
 /* 横長の画面（スマホ横・パソコン）：操作ボタンは右端に縦1列で置き、残りの幅を全部テーブルに使う */
@@ -1138,6 +1160,8 @@ html body .ledger-btn b.plus{color:#5cf09a!important}html body .ledger-btn b.min
 .fx-banner.allin .fxbig{color:#ff3b42!important}
 .fx-banner.bigh .fxbig{color:#fff!important}
 .fx-banner.badbeat .fxbig{color:#ff3b42!important}
+.fx-banner.gyaku .fxbig{color:#ffd23f!important}
+.fx-banner.pota .fxbig{font-size:clamp(1.7rem,8vw,2.6rem)!important;color:#ffd23f!important} /* ポットを1つずつ配るときの小さめの帯 */
 /* 下の名前・役：黒い札に白フチ */
 .fx-banner .sub{display:inline-block;margin-top:14px!important;padding:5px 16px;border-radius:999px;background:#111;border:2px solid #fff;box-shadow:0 0 0 2px #000,0 4px 0 #000;font-weight:900;font-size:1rem!important;color:#fff!important;}
 .flash-screen{background:radial-gradient(circle at 50% 42%,rgba(255,80,80,.3),transparent 60%)!important}
@@ -1280,44 +1304,12 @@ html body #app#app .mid .potpill.main{background:rgba(0,0,0,.6)!important}
 <div id="app"></div>
 <div id="fx" aria-hidden="true"></div>
 
-<script>
-const $=s=>document.querySelector(s);
-const $$=s=>document.querySelectorAll(s);
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt=n=>Number(n||0).toLocaleString('ja-JP');
-const buzz=ms=>{try{VIB.on&&navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
-const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-/* 設定：振動と「画面を消さない」。どちらもこの端末に保存する */
-const VIB={on:store.get('holdem-vib')!=='0'};
-const WAKE={on:store.get('holdem-wake')!=='0',lock:null};
-async function wakeSync(){
-  if(!navigator.wakeLock)return;
-  const want=WAKE.on&&APP.screen==='game'&&document.visibilityState==='visible';
-  try{
-    if(want&&!WAKE.lock){const l=await navigator.wakeLock.request('screen');WAKE.lock=l;l.addEventListener('release',()=>{if(WAKE.lock===l)WAKE.lock=null})}
-    else if(!want&&WAKE.lock){const l=WAKE.lock;WAKE.lock=null;await l.release()}
-  }catch(e){}
-}
-document.addEventListener('visibilitychange',()=>{try{wakeSync()}catch(e){}});
-const MAXP=9; // 楕円テーブルに並べられる人数
-const SUIT={s:'♠',h:'♥',d:'♦',c:'♣'};
-const RL=r=>({10:'10',11:'J',12:'Q',13:'K',14:'A'}[r]||String(r));
-const STREET_JP={preflop:'プリフロップ',flop:'フロップ',turn:'ターン',river:'リバー',showdown:'ショーダウン'};
+<script id="hand-core">
+/* ---------- カードと役判定・勝率計算（ゲームの状態を一切使わない独立部分） ----------
+   この <script> の中身は、そのまま Web Worker でも動かす（勝率計算を裏で回して画面を固めないため）。
+   練習ボードなど別の画面でも、この部分だけ持っていけば使える。DOM や G・APP には触らないこと */
 const HAND_JP=['ハイカード','ワンペア','ツーペア','スリーカード','ストレート','フラッシュ','フルハウス','フォーカード','ストレートフラッシュ'];
-const HAND_GUIDE=[['ロイヤルフラッシュ','As Ks Qs Js 10s','同じマークの 10・J・Q・K・A'],['ストレートフラッシュ','9h 8h 7h 6h 5h','同じマークで数字が5枚つながる'],['フォーカード','Qs Qh Qd Qc 4s','同じ数字が4枚'],['フルハウス','Ks Kh Kd 7c 7s','同じ数字3枚＋同じ数字2枚'],['フラッシュ','Ad Jd 8d 6d 3d','同じマークが5枚'],['ストレート','9s 8d 7h 6c 5s','数字が5枚つながる（A-2-3-4-5 もOK）'],['スリーカード','8s 8h 8d Kc 4s','同じ数字が3枚'],['ツーペア','Js Jd 5h 5c As','ペアが2組'],['ワンペア','10s 10h Ad 8c 3s','同じ数字が2枚'],['ハイカード','As Jd 8h 6c 3s','役なし。いちばん高いカードで勝負']];
-const handGuideHTML=()=>`<details class="poslegend handguide"><summary>役の強さ（強い順）</summary><ol>${HAND_GUIDE.map(([n,c,d])=>`<li><b>${n}</b><span class="hg">${c.split(' ').map(x=>{const su=x.slice(-1);return`<i class="${su==='h'||su==='d'?'red':''}">${x.slice(0,-1)}${SUIT[su]}</i>`}).join('')}</span><small>${d}</small></li>`).join('')}</ol><p class="note">同じ役どうしは数字の高いほうが勝ち。それも同じなら残りのカード（キッカー）で比べ、5枚とも同じなら引き分けです。マークに強弱はありません。</p></details>`;
-const CPU_NAMES=['ミナト','サクラ','ケンジ','ユイ','ソウタ','アオイ','レン','ハルカ','ダイチ','ミオ','カイト','ナナ','リク','ヒナ','ショウ','マイ','タクミ','エマ','ユウマ','リン','コウ','サラ'];
-
-/* ---------- cards & evaluation ---------- */
 function newDeck(){const d=[];for(const s of 'shdc')for(let r=2;r<=14;r++)d.push({r,s});return d}
-/* 0〜n-1 の整数を、予測できない暗号用の乱数で偏りなく選ぶ（カードを配る・ボタンの抽選に使う。CPUの思考や演出は Math.random のまま） */
-function rnd(n){
-  const c=globalThis.crypto;if(!c||!c.getRandomValues)return Math.random()*n|0;
-  const u=new Uint32Array(1),lim=4294967296-4294967296%n;
-  do{c.getRandomValues(u)}while(u[0]>=lim);
-  return u[0]%n;
-}
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
 const key=c=>c.r+c.s;
 const dec=s=>({r:parseInt(s,10),s:String(s).slice(-1)});
 function combos(n,k){const out=[];const rec=(s,a)=>{if(a.length===k){out.push(a.slice());return}for(let i=s;i<n;i++){a.push(i);rec(i+1,a);a.pop()}};rec(0,[]);return out}
@@ -1347,6 +1339,91 @@ function best(cards){
   return{score:bs,cards:bc,name:handName(bs)};
 }
 function handName(s){return s[0]===8&&s[1]===14?'ロイヤルフラッシュ':HAND_JP[s[0]]}
+/* 勝率計算用の速い役判定。best(cards).score とまったく同じ形の点数を返す（テストで大量の手を突き合わせて確認済み）。
+   best() は5枚の組み合わせ21通りを全部比べるので、何千回も繰り返す勝率計算では遅すぎるため */
+function score7(cards){
+  const cnt=new Array(15).fill(0),sm={s:0,h:0,d:0,c:0},sn={s:0,h:0,d:0,c:0};let all=0;
+  for(const c of cards){cnt[c.r]++;sm[c.s]|=1<<c.r;sn[c.s]++;all|=1<<c.r}
+  const hiStraight=m=>{if(m&(1<<14))m|=2;for(let h=14;h>=5;h--){const w=31<<(h-4);if((m&w)===w)return h}return 0};
+  const top=(m,n)=>{const o=[];for(let r=14;r>=2&&o.length<n;r--)if(m&(1<<r))o.push(r);return o};
+  for(const s in sn)if(sn[s]>=5){const sf=hiStraight(sm[s]);return sf?[8,sf]:[5,...top(sm[s],5)]}
+  const q=[],t=[],p=[],k=[];
+  for(let r=14;r>=2;r--){const n=cnt[r];if(n===4)q.push(r);else if(n===3)t.push(r);else if(n===2)p.push(r);else if(n===1)k.push(r)}
+  const rest=(ex,n)=>{const o=[];for(let r=14;r>=2&&o.length<n;r--)if(cnt[r]&&!ex.includes(r))o.push(r);return o};
+  if(q.length)return[7,q[0],...rest([q[0]],1)];
+  if(t.length&&(t.length>1||p.length))return[6,t[0],Math.max(t[1]||0,p[0]||0)];
+  const st=hiStraight(all);if(st)return[4,st];
+  if(t.length)return[3,t[0],...rest([t[0]],2)];
+  if(p.length>=2)return[2,p[0],p[1],...rest([p[0],p[1]],1)];
+  if(p.length)return[1,p[0],...rest([p[0]],3)];
+  return[0,...k.slice(0,5)];
+}
+
+/* 勝率：hands＝各プレイヤーの手札2枚の配列、board＝場のカード0〜5枚。
+   場が3枚以上なら残りのカードを全通り数えて正確に出す。それより少なければランダムに iters 回配って近づける（モンテカルロ法）。
+   返り値：各プレイヤーの {win:単独で勝つ確率, tie:引き分けになる確率, share:引き分けを人数で割った取り分}（0〜1）と、数えた回数・全通りかどうか */
+function handEquity(hands,board,opt){
+  opt=opt||{};
+  const N=hands.length,used=new Set(hands.flat().concat(board).map(key));
+  const deck=newDeck().filter(c=>!used.has(key(c))),need=5-board.length;
+  const win=new Array(N).fill(0),tie=new Array(N).fill(0),share=new Array(N).fill(0);
+  const sc=new Array(N);
+  const one=b=>{
+    let top=null,nw=0;
+    for(let k=0;k<N;k++){const s=score7(hands[k].concat(b));sc[k]=s;const c=top?cmp(s,top):1;if(c>0){top=s;nw=1}else if(c===0)nw++}
+    for(let k=0;k<N;k++)if(cmp(sc[k],top)===0){if(nw===1)win[k]++;else{tie[k]++;share[k]+=1/nw}}
+  };
+  let total=0;const exact=need<=2||!!opt.exact;
+  if(exact){
+    if(need===0){one(board);total=1}
+    else for(const ix of combos(deck.length,need)){one(board.concat(ix.map(i=>deck[i])));total++}
+  }else{
+    const iters=opt.iters||5000,rand=opt.rand||Math.random;
+    for(let it=0;it<iters;it++){
+      for(let i=0;i<need;i++){const j=i+(rand()*(deck.length-i)|0);const t=deck[i];deck[i]=deck[j];deck[j]=t}
+      one(board.concat(deck.slice(0,need)));
+    }
+    total=iters;
+  }
+  return{exact,total,players:hands.map((_,k)=>({win:win[k]/total,tie:tie[k]/total,share:(win[k]+share[k])/total}))};
+}
+</script>
+<script>
+const $=s=>document.querySelector(s);
+const $$=s=>document.querySelectorAll(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>Number(n||0).toLocaleString('ja-JP');
+const buzz=ms=>{try{VIB.on&&navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+/* 設定：振動と「画面を消さない」。どちらもこの端末に保存する */
+const VIB={on:store.get('holdem-vib')!=='0'};
+const WAKE={on:store.get('holdem-wake')!=='0',lock:null};
+async function wakeSync(){
+  if(!navigator.wakeLock)return;
+  const want=WAKE.on&&APP.screen==='game'&&document.visibilityState==='visible';
+  try{
+    if(want&&!WAKE.lock){const l=await navigator.wakeLock.request('screen');WAKE.lock=l;l.addEventListener('release',()=>{if(WAKE.lock===l)WAKE.lock=null})}
+    else if(!want&&WAKE.lock){const l=WAKE.lock;WAKE.lock=null;await l.release()}
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{try{wakeSync()}catch(e){}});
+const MAXP=9; // 楕円テーブルに並べられる人数
+const SUIT={s:'♠',h:'♥',d:'♦',c:'♣'};
+const RL=r=>({10:'10',11:'J',12:'Q',13:'K',14:'A'}[r]||String(r));
+const STREET_JP={preflop:'プリフロップ',flop:'フロップ',turn:'ターン',river:'リバー',showdown:'ショーダウン'};
+const HAND_GUIDE=[['ロイヤルフラッシュ','As Ks Qs Js 10s','同じマークの 10・J・Q・K・A'],['ストレートフラッシュ','9h 8h 7h 6h 5h','同じマークで数字が5枚つながる'],['フォーカード','Qs Qh Qd Qc 4s','同じ数字が4枚'],['フルハウス','Ks Kh Kd 7c 7s','同じ数字3枚＋同じ数字2枚'],['フラッシュ','Ad Jd 8d 6d 3d','同じマークが5枚'],['ストレート','9s 8d 7h 6c 5s','数字が5枚つながる（A-2-3-4-5 もOK）'],['スリーカード','8s 8h 8d Kc 4s','同じ数字が3枚'],['ツーペア','Js Jd 5h 5c As','ペアが2組'],['ワンペア','10s 10h Ad 8c 3s','同じ数字が2枚'],['ハイカード','As Jd 8h 6c 3s','役なし。いちばん高いカードで勝負']];
+const handGuideHTML=()=>`<details class="poslegend handguide"><summary>役の強さ（強い順）</summary><ol>${HAND_GUIDE.map(([n,c,d])=>`<li><b>${n}</b><span class="hg">${c.split(' ').map(x=>{const su=x.slice(-1);return`<i class="${su==='h'||su==='d'?'red':''}">${x.slice(0,-1)}${SUIT[su]}</i>`}).join('')}</span><small>${d}</small></li>`).join('')}</ol><p class="note">同じ役どうしは数字の高いほうが勝ち。それも同じなら残りのカード（キッカー）で比べ、5枚とも同じなら引き分けです。マークに強弱はありません。</p></details>`;
+const CPU_NAMES=['ミナト','サクラ','ケンジ','ユイ','ソウタ','アオイ','レン','ハルカ','ダイチ','ミオ','カイト','ナナ','リク','ヒナ','ショウ','マイ','タクミ','エマ','ユウマ','リン','コウ','サラ'];
+
+/* ---------- cards & evaluation ---------- */
+/* 0〜n-1 の整数を、予測できない暗号用の乱数で偏りなく選ぶ（カードを配る・ボタンの抽選に使う。CPUの思考や演出は Math.random のまま） */
+function rnd(n){
+  const c=globalThis.crypto;if(!c||!c.getRandomValues)return Math.random()*n|0;
+  const u=new Uint32Array(1),lim=4294967296-4294967296%n;
+  do{c.getRandomValues(u)}while(u[0]>=lim);
+  return u[0]%n;
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
 
 /* モンテカルロで勝率を推定 (CPU用) */
 function equity(hole,board,nOpp,iters){
@@ -1936,21 +2013,43 @@ let G=null;
 
 const cpuWait=()=>Math.max(750,(G.pauseUntil||0)-Date.now()+500);
 
-/* オールイン勝負中の勝率。場に残りのカードを配って数える */
+/* 勝率の計算は Web Worker（画面の処理とは別に裏で動く計算係）に任せて、演出中に画面が固まらないようにする。
+   Worker の中身は <script id="hand-core"> そのもの。使えない環境では、その場で計算する */
+const EQW={w:undefined,n:0,cb:new Map()};
+function eqWorker(){
+  if(EQW.w!==undefined)return EQW.w;
+  EQW.w=null;
+  try{
+    const src=document.getElementById('hand-core').textContent+'\nonmessage=e=>{const d=e.data;let r=null;try{r=handEquity(d.h,d.b,d.o)}catch(x){}postMessage({id:d.id,r})};';
+    const w=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));
+    w.onmessage=e=>{const f=EQW.cb.get(e.data.id);if(f)f(e.data.r)};
+    w.onerror=e=>{try{e.preventDefault()}catch(x){}EQW.w=null;try{w.terminate()}catch(x){}const fs=[...EQW.cb.values()];fs.forEach(f=>f(null))};
+    EQW.w=w;
+  }catch(e){EQW.w=null}
+  return EQW.w;
+}
+function equityAsync(hands,board,opt){
+  const here=()=>handEquity(hands,board,opt);
+  const w=eqWorker();if(!w)return Promise.resolve(here());
+  return new Promise(res=>{
+    const id=++EQW.n;let done=false;
+    const fin=r=>{if(done)return;done=true;clearTimeout(t);EQW.cb.delete(id);res(r||here())};
+    const t=setTimeout(()=>fin(null),6000);
+    EQW.cb.set(id,fin);
+    try{w.postMessage({id,h:hands,b:board,o:opt})}catch(e){fin(null)}
+  });
+}
+/* オールイン勝負中の勝率。場が3枚以上なら残りを全通り数えて正確に、プリフロップは5000回ランダムに配って近似する。
+   計算中に次のハンドへ進んだなどで状況が変わっていたら、結果は捨てる（false を返す） */
 function calcEq(){
   const live=G.players.filter(p=>!p.out&&!p.folded);
-  const used=new Set([...G.board,...live.flatMap(p=>p.hand)].map(key));
-  const deck=newDeck().filter(c=>!used.has(key(c))),need=5-G.board.length;
-  const iters=need?Math.max(300,Math.floor(1800/live.length)):1,win=live.map(()=>0);
-  for(let it=0;it<iters;it++){
-    for(let i=0;i<need;i++){const j=i+(Math.random()*(deck.length-i)|0);[deck[i],deck[j]]=[deck[j],deck[i]]}
-    const b=G.board.concat(deck.slice(0,need));
-    const sc=live.map(p=>best(p.hand.concat(b)).score);
-    let top=sc[0];sc.forEach(s=>{if(cmp(s,top)>0)top=s});
-    const ws=sc.map((s,k)=>cmp(s,top)===0?k:-1).filter(k=>k>=0);
-    ws.forEach(k=>win[k]+=1/ws.length);
-  }
-  G.eq={};live.forEach((p,k)=>G.eq[p.id]=Math.round(win[k]/iters*100));
+  const g=G,hn=G.handNo,bl=G.board.length;
+  return equityAsync(live.map(p=>p.hand),G.board,{iters:5000}).then(r=>{
+    if(G!==g||G.handNo!==hn||G.board.length!==bl||!r)return false;
+    G.eq={};live.forEach((p,k)=>{const e=r.players[k];G.eq[p.id]={w:+e.win.toFixed(4),t:+e.tie.toFixed(4)}});
+    if(G.ro)G.ro.eqH[bl]=Object.fromEntries(live.map((p,k)=>[p.id,+r.players[k].share.toFixed(4)]));
+    return true;
+  });
 }
 
 /* ハンドの記録：振り返りと結果画面に使う */
@@ -1994,10 +2093,11 @@ function takeOver(){
   }
   restoreG(S,{});
   const mid=S.phase==='play';
-  G.players.forEach(p=>{if(mid)p.chips+=p.total;p.total=0;p.bet=0;p.hand=[];p.allin=false;p.best=null;p.won=0;p.shown=false;p.mucked=false;if(mid)p.lastAction=''});
+  // オールイン演出でポットを配っている途中なら、配り済みの分（won）を引いてから戻す
+  G.players.forEach(p=>{if(mid)p.chips+=p.total-(p.won||0);p.total=0;p.bet=0;p.hand=[];p.allin=false;p.best=null;p.won=0;p.shown=false;p.mucked=false;if(mid)p.lastAction=''});
   if(S.tally){G.aiS=S.tally.st||{};G.tally={max:S.tally.max,best:S.tally.best}}
   G.lastHand=S.lastHand||null;G.ended=!!S.ended;
-  G.cur=-1;G.tabled=false;G.eq=null;
+  G.cur=-1;G.tabled=false;G.eq=null;G.ro=null;
   log(`ホストの接続が切れたので ${APP.name} が引き継ぎました${mid?'。進行中のハンドは無効にして、チップを戻しました':''}`,'sys');
   announce(`${APP.name} がホストを引き継ぎました`);
   enterRoom();
@@ -2026,7 +2126,7 @@ function log(text,kind=''){G.log.push({text,kind});if(G.log.length>200)G.log.shi
 const cardsTxt=cs=>cs.map(c=>RL(c.r)+SUIT[c.s]).join(' ');
 const mkPlayer=(q,i,chips,wait=false)=>({id:i,pid:q.pid,name:q.name,kind:q.kind,chips,hand:[],bet:0,total:0,folded:false,allin:false,acted:false,actedBet:null,out:false,kicked:false,
   waitBB:wait,missedBB:false,shown:false,mucked:false,lastAction:'',best:null,won:0,rebuys:0,lastRebuy:0});
-function freshG(){return{players:[],pending:[],cfg:{...setupCfg},dealer:-1,sb:setupCfg.sb,bb:setupCfg.bb,every:setupCfg.every,handNo:0,board:[],deck:[],street:'',cur:-1,turnId:0,currentBet:0,minRaise:setupCfg.bb,
+function freshG(){return{ro:null,players:[],pending:[],cfg:{...setupCfg},dealer:-1,sb:setupCfg.sb,bb:setupCfg.bb,every:setupCfg.every,handNo:0,board:[],deck:[],street:'',cur:-1,turnId:0,currentBet:0,minRaise:setupCfg.bb,
   log:[],phase:'play',reveal:-1,showdown:false,winCards:new Set(),timer:null,say:'',sayN:0,sbI:-1,bbI:-1,sbSeat:-1,lastAggr:-1,tabled:false,potResults:[]}}
 
 function startGame(list){
@@ -2101,7 +2201,7 @@ function newHand(){
   placeBlinds();
   G.players.forEach(p=>{p.out=!(eligible(p)&&!p.waitBB);p.folded=p.out;p.lastAction=p.kicked?'退席':p.chips<=0?'脱落':p.waitBB?'BB待ち':''});
   const alive=G.players.filter(p=>!p.out);
-  G.deck=shuffle(newDeck());G.board=[];G.showdown=false;G.tabled=false;G.lastAggr=-1;G.potResults=[];G.winCards=new Set();G.phase='play';G.reveal=-1;if(APP.sheet==="raise")APP.sheet=null;G.fresh=0;
+  G.deck=shuffle(newDeck());G.board=[];G.showdown=false;G.tabled=false;G.ro=null;G.lastAggr=-1;G.potResults=[];G.winCards=new Set();G.phase='play';G.reveal=-1;if(APP.sheet==="raise")APP.sheet=null;G.fresh=0;
   for(let k=0;k<2;k++){let i=G.dealer;for(let n=0;n<alive.length;n++){i=nextIdx(i,p=>!p.out);G.players[i].hand.push(G.deck.pop())}}
   const dp=G.players[G.dealer];
   log(`ハンド #${G.handNo}（ボタン: ${dp.out?`${dp.name} の席・デッドボタン`:dp.name}）`,'sys');
@@ -2135,6 +2235,7 @@ function turnStart(){
 }
 function resumeTurn(){
   if(G.phase!=='play'){changed();return}
+  if(G.ro){roResume();return}
   if(G.cur>=0){G.turnId++;const p=G.players[G.cur];changed();if(p.kind==='cpu')G.timer=setTimeout(cpuAct,750);return}
   changed();G.timer=setTimeout(endStreet,1000);
 }
@@ -2156,10 +2257,18 @@ function endStreet(){
     G.tabled=true;
     live.forEach(p=>log(`${p.name}: ${cardsTxt(p.hand)}（オープン）`));
     log('オールインでベッティング終了。全員の手札をオープンします','sys');
-    if(G.street!=='river'){calcEq();G.reveal=-1;G.phase='play';changed();G.timer=setTimeout(endStreet,2600);return}
+    // ボードがまだ5枚そろっていなければ、オールイン演出に入る（リバーでのオールインはそのままショーダウン）
+    if(G.street!=='river')return startRunout();
   }
-  const next={preflop:'flop',flop:'turn',turn:'river',river:'showdown'}[G.street];
+  const next=NEXT_ST[G.street];
   if(next==='showdown')return showdown();
+  dealStreet(next);
+  if(G.players.filter(canAct).length<2){G.reveal=-1;G.phase='play';changed();G.timer=setTimeout(endStreet,2400);return}
+  advance(G.dealer);
+}
+const NEXT_ST={preflop:'flop',flop:'turn',turn:'river',river:'showdown'};
+/* 次のストリートのカードを山札から出す（1枚焼いてから、フロップは3枚・ターンとリバーは1枚） */
+function dealStreet(next){
   G.lastAggr=-1;
   G.street=next;G.deck.pop();
   const n=next==='flop'?3:1;const dealt=[];
@@ -2169,8 +2278,67 @@ function endStreet(){
   announce(`${STREET_JP[next]}: ${cardsTxt(dealt)}`);
   G.pauseUntil=Date.now()+(next==='flop'?1420:800);
   G.players.forEach(p=>{if(canAct(p))p.lastAction=''});
-  if(G.players.filter(canAct).length<2){if(G.tabled)calcEq();G.reveal=-1;G.phase='play';changed();G.timer=setTimeout(endStreet,G.tabled?3200:2400);return}
-  advance(G.dealer);
+}
+
+/* ---------- オールイン演出（ランアウト） ----------
+   進め方を決めるのはホスト（1台遊びならこの端末）だけ。段階が進むたびに全員へ状態を送るので、全員の画面で同じように「溜め→めくり」が起きる。
+   まだ出ていないカードは、めくる瞬間まで山札（ホストの端末の中だけにある）から出さない。溜めの間に送るのは「次は何をめくるか」と溜める長さだけ。
+   G.ro.st：open（手札を開いて勝率を出す）→ hold（溜め）→ deal（めくった）→ … → award（ポットを1つずつ配る）
+   G.ro.eqH：場の枚数ごとの勝率（引き分けを人数で割った取り分）。「逆転！」の判定に使う */
+const RO_HOLD={flop:1500,turn:1500,river:3000};
+function roLater(fn,ms){const g=G,hn=G.handNo;clearTimeout(G.timer);G.timer=setTimeout(()=>{if(G===g&&G.handNo===hn&&G.ro)fn()},ms)}
+function startRunout(){
+  G.ro={st:'open',hold:0,next:NEXT_ST[G.street],k:-1,pots:null,rev:null,eqH:{}};
+  G.eq=null;G.reveal=-1;G.phase='play';G.cur=-1;
+  changed();
+  const t0=Date.now();
+  calcEq().then(ok=>{if(!ok||!G.ro)return;changed();roLater(roHold,Math.max(1300,2000-(Date.now()-t0)))});
+}
+function roHold(){
+  G.ro.st='hold';G.ro.next=NEXT_ST[G.street];G.ro.hold=RO_HOLD[G.ro.next]||1500;
+  changed();roLater(roDeal,G.ro.hold);
+}
+function roDeal(){
+  dealStreet(G.ro.next);G.ro.st='deal';G.ro.hold=0;
+  const flop=G.street==='flop';
+  calcEq().then(ok=>{
+    if(!ok||!G.ro)return;
+    changed();
+    if(G.board.length>=5)roLater(roShowdown,2400);else roLater(roHold,flop?2300:1700);
+  });
+}
+function roShowdown(){showdown(true)}
+/* ホストが読み込み直したとき・別の人がホストを引き継いだとき：今の段階から続ける */
+function roResume(){
+  changed();
+  if(G.ro.st==='award'){roLater(roAward,1200);return}
+  calcEq().then(ok=>{if(ok)changed()});
+  if(G.board.length>=5)roLater(roShowdown,1800);else roLater(roHold,1500);
+}
+/* ポットを1つずつ配る：サイドポットの上の方から順に、最後にメインポット */
+function roAward(){
+  const res=showdownResults(),order=res.map((_,k)=>k).reverse();
+  if(!G.ro.pots)G.ro.pots=order.map(k=>({a:res[k].pot.amount,w:res[k].ws.map(p=>p.id),label:res[k].label}));
+  G.ro.k++;
+  const r=res[order[G.ro.k]];
+  if(!r){roFinish();return}
+  G.winCards=new Set();awardPot(r);
+  changed();
+  if(G.ro.k<order.length-1)roLater(roAward,1900);else roLater(roFinish,1500);
+}
+function roFinish(){
+  const res=showdownResults();
+  G.winCards=new Set();res.forEach(r=>r.ws.forEach(w=>w.best.cards.forEach(c=>G.winCards.add(key(c)))));
+  G.potResults.sort((a,b)=>a.i-b.i);
+  finishHand();
+}
+/* 逆転：リバーをめくる直前の勝率で一番ではなかった人が、メインポットを（ひとりで）取った */
+function roReversal(main){
+  const h=G.ro&&G.ro.eqH&&G.ro.eqH[4];
+  if(!h||!main||main.ws.length!==1)return null;
+  const w=main.ws[0],mine=h[w.id];if(mine==null)return null;
+  const top=Math.max(...Object.entries(h).filter(([id])=>+id!==w.id).map(([,v])=>v));
+  return mine<top?{name:w.name,id:w.id,from:Math.round(mine*100)}:null;
 }
 
 function seatOrder(p){const n=G.players.length;return((p.id-G.dealer-1)%n+n)%n}
@@ -2202,22 +2370,39 @@ function distribute(amount,winners){
 
 /* ショーダウン：勝った人の手札だけ自動で公開する。負けた人は伏せる（マック）。
    オールインで全員の手札をすでに開いている場合は、そのまま全員公開。伏せた人もハンドのあとで「手札を見せる」を押せば公開できる */
-function showdown(){
-  G.street='showdown';G.showdown=true;G.cur=-1;
+/* ポットごとの勝者を決める（チップはまだ動かさない）。何度呼んでも同じ結果になる */
+function showdownResults(){
   const live=G.players.filter(p=>!p.out&&!p.folded);
-  live.forEach(p=>{p.best=best(p.hand.concat(G.board))});
+  live.forEach(p=>{if(!p.best||!p.best.score)p.best=best(p.hand.concat(G.board))});
   const pots=computePots();
-  G.potResults=[];
-  pots.forEach((pot,k)=>{
+  return pots.map((pot,k)=>{
     let el=pot.eligible.filter(p=>!p.mucked);if(!el.length)el=pot.eligible;
     let top=null,ws=[];
     el.forEach(p=>{const c=top?cmp(p.best.score,top):1;if(c>0){top=p.best.score;ws=[p]}else if(c===0)ws.push(p)});
-    distribute(pot.amount,ws);
-    ws.forEach(w=>w.best.cards.forEach(c=>G.winCards.add(key(c))));
-    const label=potLabel(k,pots.length);
-    G.potResults.push({label,amount:pot.amount,winners:ws.map(w=>w.name),hand:ws[0].best.name,split:ws.length>1,contenders:el.length});
-    log(`${label} ${fmt(pot.amount)}（${el.length}人で争い）→ ${ws.map(w=>w.name).join('・')}${ws.length>1?' で分配':''}（${ws[0].best.name}）`,'win');
+    return{i:k,pot,el,ws,label:potLabel(k,pots.length)};
   });
+}
+function awardPot(r){
+  const {pot,el,ws,label}=r;
+  distribute(pot.amount,ws);
+  ws.forEach(w=>w.best.cards.forEach(c=>G.winCards.add(key(c))));
+  G.potResults.push({i:r.i,label,amount:pot.amount,winners:ws.map(w=>w.name),hand:ws[0].best.name,split:ws.length>1,contenders:el.length});
+  log(`${label} ${fmt(pot.amount)}（${el.length}人で争い）→ ${ws.map(w=>w.name).join('・')}${ws.length>1?' で分配':''}（${ws[0].best.name}）`,'win');
+}
+/* staged＝オールイン演出のとき。ポットを1つずつ時間をおいて配る（roAward） */
+function showdown(staged){
+  G.street='showdown';G.showdown=true;G.cur=-1;
+  const live=G.players.filter(p=>!p.out&&!p.folded);
+  live.forEach(p=>{p.best=null});
+  const res=showdownResults();
+  G.potResults=[];
+  if(staged&&G.ro){
+    live.forEach(p=>{p.shown=true;log(`${p.name}: ${cardsTxt(p.hand)} → ${p.best.name}`)});
+    G.ro.st='award';G.ro.k=-1;G.ro.pots=null;G.ro.rev=roReversal(res[0]);G.eq=null;
+    if(G.ro.rev)log(`逆転！ ${G.ro.rev.name}（リバー前の勝率 ${G.ro.rev.from}%）`,'sys');
+    changed();roLater(roAward,900);return;
+  }
+  res.forEach(awardPot);
   live.forEach(p=>{
     if(G.tabled||p.won>0){p.shown=true;log(`${p.name}: ${cardsTxt(p.hand)} → ${p.best.name}`)}
     else{p.mucked=true;p.lastAction='マック';log(`${p.name}: マック`)}
@@ -2665,7 +2850,7 @@ function restoreG(S,sec){
   G=freshG();
   Object.assign(G,{cfg:S.settings||{...setupCfg},dealer:S.dealer,sb:S.sb,bb:S.bb,every:(S.settings||{}).every||0,handNo:S.handNo,street:S.street,cur:S.cur,turnId:S.turnId||0,
     currentBet:S.currentBet,minRaise:S.minRaise,phase:S.phase==='done'?'done':S.phase==='over'?'over':'play',showdown:!!S.showdown,winCards:new Set(S.winCards||[]),
-    say:S.say||'',sayN:S.sayN||0,sbI:S.sbI,bbI:S.bbI,sbSeat:S.sbSeat??S.sbI,lastAggr:S.lastAggr??-1,tabled:!!S.tabled,potResults:S.potResults||[],
+    say:S.say||'',sayN:S.sayN||0,sbI:S.sbI,bbI:S.bbI,sbSeat:S.sbSeat??S.sbI,lastAggr:S.lastAggr??-1,tabled:!!S.tabled,ro:S.ro||null,potResults:S.potResults||[],
     log:(S.log||[]).slice(),board:(S.board||[]).map(dec),deck:(sec.deck||[]).map(dec),fresh:99});
   G.players=S.players.map((q,i)=>({id:i,pid:q.pid,name:q.name,kind:q.pid===APP.pid?'local':q.kind==='cpu'?'cpu':'remote',chips:q.chips,hand:((sec.hands||{})[q.pid]||[]).map(dec),
     bet:q.bet,total:q.total,folded:q.folded,allin:q.allin,acted:!!q.acted,actedBet:q.actedBet??null,out:q.out,kicked:!!q.kicked,waitBB:!!q.waitBB,missedBB:!!q.missedBB,
@@ -2673,14 +2858,16 @@ function restoreG(S,sec){
 }
 
 /* ---------- view model (shared by local, host and player) ---------- */
+/* 勝率（オールイン勝負中だけ）。eq は整数%、eqW・eqT は単独で勝つ確率と引き分けの確率（0〜1） */
+function eqOf(p){const e=G.eq&&G.phase==='play'&&!p.folded&&G.eq[p.id];return e?{eq:Math.round(e.w*100),eqW:e.w,eqT:e.t}:{eq:null}}
 function viewFromG(){
   const spect=APP.role==='local'&&!G.players.some(p=>p.kind==='local');
   return{status:G.phase==='over'?'over':'playing',handNo:G.handNo,sb:G.sb,bb:G.bb,dealer:G.dealer,sbI:G.sbI,bbI:G.bbI,sbSeat:G.sbSeat,street:G.street,
     board:G.board.map(key),cur:G.cur,turnId:G.turnId,currentBet:G.currentBet,minRaise:G.minRaise,phase:G.phase==='cover'?'play':G.phase,
-    showdown:G.showdown,tabled:G.tabled,lastAggr:G.lastAggr,winCards:[...G.winCards],say:G.say,sayN:G.sayN,log:G.log.slice(-60),pending:G.pending.map(q=>q.name),rebuy:!!G.cfg.rebuy,rebuyChips:G.cfg.chips,
+    showdown:G.showdown,tabled:G.tabled,ro:G.ro?{st:G.ro.st,hold:G.ro.hold,next:G.ro.next,k:G.ro.k,pots:G.ro.pots,rev:G.ro.rev,eqH:G.ro.eqH}:null,lastAggr:G.lastAggr,winCards:[...G.winCards],say:G.say,sayN:G.sayN,log:G.log.slice(-60),pending:G.pending.map(q=>q.name),rebuy:!!G.cfg.rebuy,rebuyChips:G.cfg.chips,
     pots:G.phase==='play'&&G.handNo>0?computePots().map(p=>({amount:p.amount,n:p.eligible.length})):[],potResults:G.potResults||[],watchers:APP.role==='host'?APP.watchers||0:0,lastHand:G.lastHand||null,ended:!!G.ended,tally:{max:(G.tally||{}).max||null,best:(G.tally||{}).best||null,st:G.aiS||{}},
     players:G.players.map(p=>({pid:p.pid,name:p.name,kind:p.kind==='cpu'?'cpu':'human',chips:p.chips,bet:p.bet,total:p.total,folded:p.folded,allin:p.allin,acted:p.acted,actedBet:p.actedBet,
-      out:p.out,kicked:p.kicked,waitBB:p.waitBB,missedBB:p.missedBB,shown:p.shown,mucked:p.mucked,lastAction:p.lastAction,won:p.won,bestName:p.best&&(p.shown||G.tabled)?p.best.name:'',rebuys:p.rebuys,lastRebuy:p.lastRebuy,eq:G.eq&&G.phase==='play'?G.eq[p.id]??null:null,
+      out:p.out,kicked:p.kicked,waitBB:p.waitBB,missedBB:p.missedBB,shown:p.shown,mucked:p.mucked,lastAction:p.lastAction,won:p.won,bestName:p.best&&(p.shown||G.tabled)?p.best.name:'',rebuys:p.rebuys,lastRebuy:p.lastRebuy,...eqOf(p),
       show:p.hand.length&&!p.out&&(p.shown||(!p.folded&&(G.tabled||spect)))?p.hand.map(key):(spect&&p.hand.length?p.hand.map(key):null)}))};
 }
 function curView(){return APP.role==='player'?APP.S:G?viewFromG():null}
@@ -2893,7 +3080,7 @@ function dockHTML(V,i){
   const p=V.cur>=0?V.players[V.cur]:null;
   const mine=isMyTurn(V,i);
   let status='';
-  if(!p)status=V.tabled?'オールイン勝負':'カードを配っています…';
+  if(!p)status=V.tabled?roStatus(V):'カードを配っています…';
   else if(!mine){
     status=player&&V.cur===i&&APP.actedTurn===V.turnId?'送信しました…':`<b>${esc(p.name)}</b> ${isAway(p)?'を待っています（不在）':'が考え中…'}`;
   }
@@ -3185,17 +3372,75 @@ function recordsHTML(){
 }
 
 const SILHOUETTE='<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="9" r="4.6"/><path d="M3.6 22c.7-5.300 4.200-8.100 8.400-8.100s7.700 2.800 8.400 8.100z"/></svg>';
+/* ---------- オールイン演出の表示 ---------- */
+const roAwarding=V=>!!(V.ro&&V.ro.st==='award'&&V.phase==='play');
+const roPotNow=(V,i)=>roAwarding(V)&&!!(V.ro.pots&&V.ro.pots[V.ro.k]&&V.ro.pots[V.ro.k].w.includes(i));
+const roHoldSlot=(V,k)=>!!(V.ro&&V.ro.st==='hold'&&V.phase==='play')&&(V.ro.next==='flop'?k<3:V.ro.next==='turn'?k===3:k===4);
+function roStatus(V){
+  const r=V.ro;if(!r)return'オールイン勝負';
+  if(r.st==='open')return'オールイン勝負！ 手札をオープン';
+  if(r.st==='hold')return`<b>${STREET_JP[r.next]||''}</b>をめくります…`;
+  if(r.st==='award'){const q=r.pots&&r.pots[r.k];if(q)return`<b>${esc(q.label)}</b> ${fmt(q.a)} → <b>${q.w.map(j=>esc((V.players[j]||{}).name)).join('・')}</b>`;return'ショーダウン'}
+  return'オールイン勝負';
+}
+const pctTxt=x=>x<=0?'0%':x<.005?'1%未満':x>.995&&x<1?'99%':Math.round(x*100)+'%';
+/* 勝率の数字とバー。金色＝単独で勝つ確率、しま模様＝引き分けの確率。いちばん勝率が高い人は緑 */
+function eqBarHTML(V,p){
+  if(!V.tabled||V.phase!=='play'||V.showdown||p.folded||p.out||p.eqW==null)return'';
+  const top=Math.max(...V.players.filter(q=>q.eqW!=null).map(q=>q.eqW));
+  return`<span class="oeq ${p.eqW===top&&p.eqW>0?'lead':''}" data-pid="${esc(p.pid)}" data-w="${p.eqW}" data-t="${p.eqT}"><span class="eqtx"><b class="eqv">勝率 ${pctTxt(p.eqW)}</b>${p.eqT>0?`<small class="eqt">引分 ${pctTxt(p.eqT)}</small>`:''}</span><span class="eqbar"><i class="w" style="width:${(p.eqW*100).toFixed(1)}%"></i><i class="t" style="width:${(p.eqT*100).toFixed(1)}%"></i></span></span>`;
+}
+/* 描画のたびに呼ぶ。画面は丸ごと描き直すので、動きは「始まってからの時間」を覚えておき、描き直したあとも続きから動かす */
+function roFX(V){
+  if(!Element.prototype.animate)return;
+  const now=performance.now(),H=APP.hFlip;
+  // 手札オープン：相手の手札がくるっと回って表になる
+  if(H&&H.hand===V.handNo&&now-H.t0<1500&&!RM.matches){
+    let k=0;
+    $$('#app .oseat.open:not(.hero) .ocards .card').forEach(c=>{
+      const b=getComputedStyle(c).transform,base=b==='none'?'':b;
+      const a=c.animate([{transform:`${base} perspective(300px) rotateY(90deg) scale(1.2)`,opacity:.2},{transform:`${base} perspective(300px) rotateY(0deg) scale(1)`,opacity:1}],
+        {duration:560,delay:k*110,easing:'cubic-bezier(.2,.8,.3,1.25)',fill:'backwards'});
+      a.currentTime=now-H.t0;k++;
+    });
+  }
+  // 勝率バー：カードがめくれ終わってから、前の値から新しい値へ伸び縮みする。数字もそのときに変える
+  if(!APP.eqA||APP.eqHand!==V.handNo){APP.eqHand=V.handNo;APP.eqA={}}
+  const A=APP.eqA;
+  const ba=APP.bAnim,bLeft=ba?Math.max(0,(ba.to-ba.from===3?1420:800)-(now-ba.t0)):0;
+  const hLeft=H&&H.hand===V.handNo?Math.max(0,600-(now-H.t0)):0;
+  let swapAt=0;
+  $$('#app .oeq').forEach(el=>{
+    const pid=el.dataset.pid,w=+el.dataset.w,t=+el.dataset.t,tx=el.querySelector('.eqtx'),html=tx.innerHTML;
+    let a=A[pid];
+    if(!a||a.w!==w||a.t!==t){
+      const cur=a?eqNow(a,now):{w:0,t:0};
+      A[pid]=a={fw:cur.w,ft:cur.t,w,t,t0:now,delay:Math.max(bLeft,hLeft)+(a?0:150),dur:a?750:900,prev:a?a.html:'',html};
+    }
+    a.html=html;
+    const e=now-a.t0;
+    if(e<a.delay&&a.prev){tx.innerHTML=a.prev;swapAt=Math.max(swapAt,a.delay-e)}
+    if(e<a.delay+a.dur&&!RM.matches){
+      const o={duration:a.dur,delay:a.delay,easing:'cubic-bezier(.25,.8,.3,1)',fill:'backwards'};
+      const x1=el.querySelector('.eqbar .w').animate([{width:a.fw*100+'%'},{width:w*100+'%'}],o);x1.currentTime=e;
+      const x2=el.querySelector('.eqbar .t').animate([{width:a.ft*100+'%'},{width:t*100+'%'}],o);x2.currentTime=e;
+    }
+  });
+  clearTimeout(APP.eqSwapT);
+  if(swapAt)APP.eqSwapT=setTimeout(()=>{if(APP.screen==='game')render()},swapAt+20);
+}
+function eqNow(a,now){const x=Math.min(1,Math.max(0,(now-a.t0-a.delay)/a.dur)),e=1-Math.pow(1-x,3);return{w:a.fw+(a.w-a.fw)*e,t:a.ft+(a.t-a.ft)*e}}
 /* 楕円テーブルの席：カードを名札の上に重ね、名札にアイコン・名前・持ち点を出す */
 function oseatHTML(p,i,V){
   const pl=positionsOf(V)[i];
   let cards='';
   if(!p.out&&(p.show||(!p.folded&&!p.mucked))&&V.handNo>0&&(p.show||p.total>0||p.acted||V.phase!=='over'))cards=p.show?p.show.map(c=>cardHTML(c,V)).join(''):backHTML()+backHTML();
   let line=esc(p.lastAction);
-  if(V.tabled&&V.phase==='play'&&p.eq!=null&&!p.folded)line=`勝率 ${p.eq}%`;
+  const eqb=eqBarHTML(V,p);
+  if(eqb)line=eqb;
   else if(V.showdown&&p.bestName&&!p.folded)line=esc(p.bestName);
-  const bet=p.bet>0&&V.phase!=='done'?`<span class="betchip">${chipI(p.bet)}${fmt(p.bet)}</span>`:'';
-  const won=p.won>0&&V.phase==='done';
-  return`<div class="oseat ${i===V.cur&&V.phase==='play'?'cur':''} ${p.folded&&!p.out?'folded':''} ${p.out?'out':''} ${won?'winner':''} ${p.show&&!p.folded?'open':''}" data-j="${i}">
+  const won=p.won>0&&(V.phase==='done'||roAwarding(V));
+  return`<div class="oseat ${i===V.cur&&V.phase==='play'?'cur':''} ${p.folded&&!p.out?'folded':''} ${p.out?'out':''} ${won?'winner':''} ${roPotNow(V,i)?'potnow':''} ${eqb?'haseq':''} ${p.show&&!p.folded?'open':''}" data-j="${i}">
     <div class="ocards">${cards}</div>
     <div class="oplate"><span class="oav">${SILHOUETTE}</span><span class="otx"><b>${chipLeader(V)===i?'<i class="ocrown in" title="チップリーダー"></i>':''}${esc(p.name)}</b><span class="ost">${pl?`<em class="opos">${pl==='BTN/SB'?'SB':pl} · </em>`:''}${fmt(p.chips)}</span></span>${pl?posBadge(pl):''}${isAway(p)&&!p.out?'<span class="tag away">不在</span>':''}${i===V.dealer&&!p.out?'<i class="odealer">D</i>':''}</div>
     <div class="oact ${won?'win':''}">${won?`+${fmt(p.won)}`:line||'&nbsp;'}</div>
@@ -3210,7 +3455,8 @@ function heroHTML(V,i){
     hole=cards.map((c,k)=>cardHTML(c,V,`${p.folded?'dim':''} ${anim?'deal':''}`,anim?`--d:${k*.12}s`:'')).join('');
     const cs=cards.map(dec),bd=(V.board||[]).map(dec);
     if(p.folded)hint='フォールド中';
-    else if(V.tabled&&V.phase==='play'&&p.eq!=null)hint=`勝率 ${p.eq}%`;
+    else if(eqBarHTML(V,p))hint=eqBarHTML(V,p);
+    else if(V.tabled&&V.phase==='play'&&!V.showdown)hint='勝率を計算中…';
     else if(bd.length>=3)hint=[best(cs.concat(bd)).name,...drawNames(cs,bd)].join('・');
     else if(cs[0].r===cs[1].r)hint='ポケットペア';
     else if(cs[0].s===cs[1].s)hint='スーテッド';
@@ -3219,7 +3465,7 @@ function heroHTML(V,i){
   const pl=positionsOf(V)[i];
   const act=hint||(p.lastAction&&V.phase==='play'&&!/^(SB|BB) /.test(p.lastAction)?esc(p.lastAction):'');
   const bet=p.bet>0&&V.phase!=='done'?`<span class="betchip">${chipI(p.bet)}${fmt(p.bet)}</span>`:'';
-  return`<div class="oseat hero ${i===V.cur&&V.phase==='play'?'cur':''} ${p.folded&&!p.out?'folded':''} ${p.won>0&&V.phase==='done'?'winner':''}" data-j="${i}">
+  return`<div class="oseat hero ${i===V.cur&&V.phase==='play'?'cur':''} ${p.folded&&!p.out?'folded':''} ${p.won>0&&(V.phase==='done'||roAwarding(V))?'winner':''} ${roPotNow(V,i)?'potnow':''} ${eqBarHTML(V,p)?'haseq':''}" data-j="${i}">
     <div class="hole">${hole}</div>
     <div class="oplate"><span class="oav">${SILHOUETTE}</span><span class="otx"><b>${chipLeader(V)===i?'<i class="ocrown in" title="チップリーダー"></i>':''}${esc(p.name)}</b><span class="ost">${fmt(p.chips)}</span></span>${pl?posBadge(pl):''}${i===V.dealer&&!p.out?'<i class="odealer">D</i>':''}</div>
     <div class="oact">${act||'&nbsp;'}</div>
@@ -3353,8 +3599,8 @@ function renderGame(){
     <div class="rail"><div class="felt">
       <div class="felt-logo">TEXAS HOLD'EM</div>
       <div class="felt-head">${STREET_EN[V.street]||''}${V.street?`<small>${STREET_JP[V.street]}</small>`:''}</div>
-      <div class="board">${[0,1,2,3,4].map(k=>cardHTML(V.board[k],V,'lg',V.board[k]?`--tilt:${tiltOf(V.board[k])}`:'')).join('')}</div>
-      <div class="pot potd" id="pot"><span class="ptag">POT</span><span class="pnum">${fmt(V.phase==='done'?V.players.reduce((s,p)=>s+(p.won||0),0):potV(V))}</span></div>
+      <div class="board">${[0,1,2,3,4].map(k=>cardHTML(V.board[k],V,'lg'+(!V.board[k]&&roHoldSlot(V,k)?' hold'+(V.ro.next==='river'?' long':''):''),V.board[k]?`--tilt:${tiltOf(V.board[k])}`:'')).join('')}</div>
+      <div class="pot potd" id="pot"><span class="ptag">POT</span><span class="pnum">${fmt(V.phase==='done'?V.players.reduce((s,p)=>s+(p.won||0),0):potV(V)-(roAwarding(V)?V.players.reduce((s,p)=>s+(p.won||0),0):0))}</span></div>
       <div class="say ${APP.sayShown!==V.sayN?'flash':''}">${esc(V.say)}</div>
     </div></div>
     </div>
@@ -3377,6 +3623,7 @@ function renderGame(){
   if(ki){ki.value=keep.v;APP.amtKeep=true;ki.focus();APP.amtKeep=false;try{ki.setSelectionRange(keep.s,keep.e)}catch(e){}}
   fitSeats();
   try{boardFX()}catch(e){console.warn(e)}
+  try{roFX(V)}catch(e){console.warn(e)}
   try{fxAfterRender(V,i)}catch(e){console.warn(e)}
 }
 
@@ -3433,6 +3680,10 @@ const SFX={
     if(clip('stack',.7)){clip('impact',.7,.1);return}
     [196,247,294,392].forEach((f,k)=>tone(f,.75,'sawtooth',.045,k*.05));noise(.4,.12,0,600,.6,'lowpass');[0,.05,.1,.15,.2].forEach(w=>SFX.chip(.2+w));
   },
+  // オールイン演出：溜めの音（心臓の音・小さな刻み）と、逆転したときの音
+  beat:(w=0)=>{tone(62,.16,'sine',.55,w,48);tone(58,.2,'sine',.42,w+.2,44)},
+  tick:(w=0)=>tone(1500,.035,'triangle',.05,w),
+  reversal:(w=0)=>{tone(220,.45,'sawtooth',.05,w,880);clip('impact',.8,w+.3);[523,659,784,1047,1319].forEach((f,k)=>tone(f,.5,'triangle',.13,w+.35+k*.07))},
   win:(me,bigPot,w=0)=>{
     if(bigPot)clip('impact',.75,w);
     if(me?clip('scoop',.8,w):clip('push',.7,w)){if(me)clip('victory',.55,w+.2);return}
@@ -3461,7 +3712,7 @@ function fxBanner(big,sub,kind=''){
   const d=document.createElement('div');d.className='fx-banner '+kind;
   const art=kind==='mewin'?'img':kind==='lose'?'img lose':'';
   d.innerHTML=`<div class="fxbig ${art}">${esc(big)}</div>${sub?`<div class="sub">${esc(sub)}</div>`:''}`;
-  const long=kind==='mewin'||kind==='lose'||kind==='';if(long)d.style.animationDuration='3s';
+  const long=kind==='mewin'||kind==='lose'||kind==='gyaku'||kind==='';if(long)d.style.animationDuration='3s';
   fx.appendChild(d);setTimeout(()=>d.remove(),long?3100:1900);
   if(kind==='mewin'){const f=document.createElement('div');f.className='flash-screen';fx.appendChild(f);setTimeout(()=>f.remove(),1000)}
 }
@@ -3479,7 +3730,7 @@ function sparkle(){
 }
 var PREV=null; // var: render() は起動直後にも呼ばれるため巻き上げが必要
 function fxAfterRender(V,i){
-  const now={handNo:V.handNo,board:V.board.length,phase:V.phase,mine:isMyTurn(V,i),turnId:V.turnId,
+  const now={handNo:V.handNo,board:V.board.length,phase:V.phase,mine:isMyTurn(V,i),turnId:V.turnId,tabled:!!V.tabled,rost:V.ro&&V.ro.st,ronext:V.ro&&V.ro.next,rok:V.ro?V.ro.k:-1,
     acts:Object.fromEntries(V.players.map((p,j)=>[p.pid,{a:p.lastAction,j}]))};
   const P=PREV;PREV=now;
   if(!P)return;
@@ -3497,20 +3748,29 @@ function fxAfterRender(V,i){
       else if(a.startsWith('オールイン')){SFX.allin();fxBanner('ALL IN',V.players[o.j].name,'allin');buzz([40,30,40]);chipFly(el,pot,6)}
       else if(/^(コール|ベット|レイズ)/.test(a)){if(a.startsWith('コール'))SFX.chip();else SFX.chips();chipFly(el,pot,a.startsWith('コール')?2:4)}
     }
+    const R=V.ro;
+    // 手札オープン：相手の手札をくるっと表にして、めくる音
+    if(V.tabled&&!P.tabled&&V.phase==='play'){APP.hFlip={hand:V.handNo,t0:performance.now()};const n=V.players.filter((p,j)=>j!==i&&p.show&&!p.folded&&!p.out).length;for(let k=0;k<Math.min(n,5);k++)SFX.flip(.05+k*.11)}
+    // 溜め：リバーは心臓の音、フロップ・ターンは小さく刻む音
+    if(R&&R.st==='hold'&&V.phase==='play'&&!(P.rost==='hold'&&P.ronext===R.next)){if(R.next==='river')for(let t=0;t<R.hold/1000-.3;t+=.75)SFX.beat(t);else[0,.5,1].forEach(t=>SFX.tick(t))}
+    // ポットを1つずつ配る：チップが勝った人へ流れる
+    if(roAwarding(V)&&R.k>=0&&!(P.rost==='award'&&P.rok===R.k)){const q=R.pots&&R.pots[R.k];if(q){q.w.forEach((j,k)=>setTimeout(()=>chipFly(pot,seatEl(j),7),k*200));SFX.chips();if(R.pots.length>1)fxBanner(q.label,q.w.map(j=>(V.players[j]||{}).name).join('・')+'　+'+fmt(Math.floor(q.a/q.w.length)),'pota')}}
     if(V.phase==='done'&&P.phase!=='done'){
       const ws=V.players.map((p,j)=>[p,j]).filter(([p])=>p.won>0);
       const meWin=ws.some(([,j])=>j===i);
       const hand=(ws.find(([p])=>p.bestName)||[{}])[0].bestName||'';
-      ws.forEach(([,j],k)=>setTimeout(()=>chipFly(pot,seatEl(j),7),300+k*250));
+      if(!(V.ro&&V.ro.pots))ws.forEach(([,j],k)=>setTimeout(()=>chipFly(pot,seatEl(j),7),300+k*250)); // 演出で配ったときは、もう流してある
       const shown=V.showdown?V.players.filter(p=>p.show&&!p.folded&&!p.out).length:0;for(let k=0;k<Math.min(shown,4);k++)SFX.flip(k*.14);
       SFX.win(meWin,(V.potResults||[]).reduce((t,r)=>t+r.amount,0)>=V.bb*40,shown?.45:0);
       const iLost=!meWin&&i>=0&&V.showdown&&!V.players[i].folded&&!V.players[i].out;
-      fxBanner(meWin?'YOU WIN':iLost?'LOSE':'WINNER',ws.map(([p])=>p.name).join('・')+(hand?`　${hand}`:''),meWin?'mewin':iLost?'lose':'');
+      const rev=V.ro&&V.ro.rev;
+      if(rev){fxBanner('逆転！',(V.players[rev.id]&&V.players[rev.id].pid===(V.players[i]||{}).pid?'あなた':rev.name)+`の逆転勝ち（リバー前 勝率${rev.from}%）`,'gyaku');SFX.reversal();buzz([30,40,30,40,80]);setTimeout(sparkle,250)}
+      else fxBanner(meWin?'YOU WIN':iLost?'LOSE':'WINNER',ws.map(([p])=>p.name).join('・')+(hand?`　${hand}`:''),meWin?'mewin':iLost?'lose':'');
       if(meWin||/ストレートフラッシュ|ロイヤル|フォーカード|フルハウス/.test(hand))setTimeout(sparkle,200);
       // 大きい役：フルハウス以上で勝ったら、役名を大きく出す
       if(V.showdown&&HAND_RANK(hand)>=6)setTimeout(()=>{fxBanner(hand,ws.map(([p])=>p.name).join('・'),'bigh');sparkle();clip('impact',.8)},2700);
       // バッドビート：フルハウス以上で負けた人、またはオールインの時点で勝率75%以上だった人が負けた
-      const bad=V.players.find(p=>p.won<=0&&!p.folded&&!p.out&&V.showdown&&(HAND_RANK(p.bestName||'')>=6||(APP.eqSnap&&APP.eqSnap[p.pid]>=75)));
+      const bad=!V.ro&&V.players.find(p=>p.won<=0&&!p.folded&&!p.out&&V.showdown&&(HAND_RANK(p.bestName||'')>=6||(APP.eqSnap&&APP.eqSnap[p.pid]>=75)));
       if(bad)setTimeout(()=>{fxBanner('BAD BEAT',`${bad.name}${bad.bestName?'の'+bad.bestName:''}が逆転負け`,'badbeat');clip('impact',.9);buzz([60,40,60])},HAND_RANK(hand)>=6?4400:2700);
       APP.eqSnap=null;
       recSave(V,i);
