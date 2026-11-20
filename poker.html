@@ -1253,6 +1253,7 @@ html body #app .home .wide-btn{height:54px!important;background:linear-gradient(
 .bbtns{display:flex;gap:6px;flex:none}
 .bbtns button{min-width:56px;height:38px;border-radius:10px;border:1.5px solid rgba(255,255,255,.5);color:#fff;font-size:.82rem}
 .bbtns button:disabled{opacity:.3}
+.bbtns button[aria-pressed="true"]{background:#fff;color:#111;border-color:#fff}
 .handguide ol{margin:6px 0 0;padding:0;list-style:none;counter-reset:hg;display:flex;flex-direction:column;gap:6px}
 .handguide li{counter-increment:hg;display:grid;grid-template-columns:1.4em 1fr;column-gap:6px;align-items:baseline}
 .handguide li::before{content:counter(hg);grid-row:1/4;font-family:var(--f-num);color:var(--red)}
@@ -3178,6 +3179,7 @@ function sheetHTML(V,i){
       <button class="plain setrow" id="snd" role="switch" aria-checked="${FX.on}"><span>効果音</span><b class="${FX.on?'on':'off'}">${FX.on?'オン':'オフ'}</b></button>
       <button class="plain setrow" id="voice" role="switch" aria-checked="${VOICE.on}"><span>読み上げ<small>レイズ・WIN などを声で</small></span><b class="${VOICE.on?'on':'off'}">${VOICE.on?'オン':'オフ'}</b></button>
       ${VOICE.on?`<div class="plain setrow blinds"><span>声の大きさ<small>${VOICE.vol}%</small></span><span class="bbtns"><button data-vv="-20" ${VOICE.vol<=0?'disabled':''} aria-label="小さく">－</button><button data-vv="20" ${VOICE.vol>=100?'disabled':''} aria-label="大きく">＋</button></span></div>
+      <div class="plain setrow blinds"><span>声</span><span class="bbtns">${Object.entries(VOICE_SETS).map(([w,s])=>`<button data-vwho="${w}" aria-pressed="${VOICE.who===w}">${s.label}</button>`).join('')}</span></div>
       <button class="plain setrow" id="vdetail" role="switch" aria-checked="${VOICE.detail}" ${SS?'':'disabled'}><span>名前・金額も読む<small>端末の声で読みます</small></span><b class="${SS&&VOICE.detail?'on':'off'}">${!SS?'この端末は非対応':VOICE.detail?'オン':'オフ'}</b></button>`:''}
       <button class="plain setrow" id="vib" role="switch" aria-checked="${VIB.on}" ${navigator.vibrate?'':'disabled'}><span>振動</span><b class="${navigator.vibrate&&VIB.on?'on':'off'}">${navigator.vibrate?(VIB.on?'オン':'オフ'):'この端末は非対応'}</b></button>
       <button class="plain setrow" id="wake" role="switch" aria-checked="${WAKE.on}" ${navigator.wakeLock?'':'disabled'}><span>画面を消さない</span><b class="${navigator.wakeLock&&WAKE.on?'on':'off'}">${navigator.wakeLock?(WAKE.on?'オン':'オフ'):'この端末は非対応'}</b></button>
@@ -3679,7 +3681,7 @@ const SFX={
   chips:(w=0)=>clip('chips',.7,w,.06)||SFX.chip(w),
   check:(w=0)=>{tone(150,.09,'sine',.35,w,110);tone(150,.09,'sine',.3,w+.12,110)},
   fold:(w=0)=>clip('toss',.5,w,.1)||noise(.28,.22,w,900,.6,'lowpass'),
-  turn:()=>{tone(880,.16,'sine',.14);tone(1320,.28,'sine',.14,.13)},
+  turn:()=>{noise(.05,.6,0,1100,3);tone(620,.06,'sine',.22,0,420);noise(.05,.5,.13,1300,3);tone(720,.06,'sine',.2,.13,480)}, // 自分の番：木を指で2回コツッとたたく音
   allin:()=>{
     if(clip('stack',.7)){clip('impact',.7,.1);return}
     [196,247,294,392].forEach((f,k)=>tone(f,.75,'sawtooth',.045,k*.05));noise(.4,.12,0,600,.6,'lowpass');[0,.05,.1,.15,.2].forEach(w=>SFX.chip(.2+w));
@@ -3720,7 +3722,9 @@ const VOICE_LINES={
   royal_flush:['royal_flush.mp3','ロイヤルフラッシュ！'],
 };
 /* クレジット（設定画面のいちばん下に出る）。1行ずつ書く */
-const VOICE_CREDIT=['音声：AivisSpeech','音声モデル：まお（作者：オズチャット -Oz Chat-・Trippy／CV：ねゆたろ）','AivisSpeech: まお'];
+const VOICE_CREDIT=['音声：AivisSpeech','女性の声：まお（作者：オズチャット -Oz Chat-・Trippy／CV：ねゆたろ）','男性の声：fumifumi（制作：黒神／声：サガワフミヤ）','AivisSpeech: まお・fumifumi'];
+/* 声の種類。設定で選ぶ。ファイルは sounds/<dir> に、どの声も VOICE_LINES と同じ名前で置く */
+const VOICE_SETS={female:{dir:'',label:'女性'},male:{dir:'male/',label:'男性'}};
 /* 画面に出る大きな文字・アクション → どのセリフを鳴らすか */
 const BANNER_VOICE={'ALL IN':'allin','YOU WIN':'you_win','WINNER':'winner','LOSE':'lose','逆転！':'reversal','BAD BEAT':'bad_beat','メインポット':'main_pot',
   'フルハウス':'full_house','フォーカード':'four_of_a_kind','ストレートフラッシュ':'straight_flush','ロイヤルフラッシュ':'royal_flush'};
@@ -3729,16 +3733,28 @@ const ACT_VOICE={'フォールド':'fold','チェック':'check','コール':'ca
 const actVoice=a=>{const m=a.match(/^(フォールド|チェック|コール|ベット|レイズ)/);return m?ACT_VOICE[m[1]]:''};
 
 const VOICE={on:store.get('holdem-voice')!=='0',vol:(n=>Number.isFinite(n)?Math.min(100,Math.max(0,n)):100)(parseInt(store.get('holdem-voice-vol'),10)),
-  detail:store.get('holdem-voice-detail')==='1',v:null,raw:{},buf:{},bad:{},dec:{},q:[],busy:false,src:null};
+  detail:store.get('holdem-voice-detail')==='1',who:VOICE_SETS[store.get('holdem-voice-who')]?store.get('holdem-voice-who'):'female',
+  v:null,raw:{},buf:{},bad:{},dec:{},last:{},q:[],busy:false,src:null};
 const SS=window.speechSynthesis&&window.SpeechSynthesisUtterance?speechSynthesis:null;
 function jaVoice(){if(VOICE.v)return VOICE.v;const vs=SS.getVoices().filter(v=>/^ja/i.test(v.lang));VOICE.v=vs.find(v=>v.localService)||vs[0]||null;return VOICE.v}
 /* ページを開いたらすぐ音声ファイルを読んでおく（鳴らすときに待たないように）。音にする作業は、音の土台ができてから */
+/* 1つのセリフに声の調子ちがいを VOICE_PATTERNS 個まで用意できる。raise.mp3（1つ目）・raise_2.mp3・raise_3.mp3 … のように名前に _番号 を付ける。
+   鳴らすたびに読めたものから1つを選ぶ（前回と同じものは続けて選ばない）。無い番号は飛ばす */
+const VOICE_PATTERNS=3;
+// 読み込んだ音の名前は「声:セリフ#番号」（例 male:raise#2）。読み込むのは、いま選んでいる声だけ
+const voiceIds=(k,who=VOICE.who)=>Array.from({length:VOICE_PATTERNS},(_,p)=>who+':'+k+(p?'#'+(p+1):''));
+const voiceFile=(file,id)=>{const [who,rest]=id.split(':'),p=rest.split('#')[1];return VOICE_SETS[who].dir+(p?file.replace(/\.mp3$/,'_'+p+'.mp3'):file)};
 function voicePreload(){
-  for(const [k,[file]] of Object.entries(VOICE_LINES)){
-    if(VOICE.raw[k]||VOICE.buf[k]||VOICE.bad[k])continue;
-    try{fetch(VOICE_DIR+file).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(ab=>{VOICE.raw[k]=ab;voiceDecode()}).catch(()=>{VOICE.bad[k]=1})}catch(e){VOICE.bad[k]=1}
+  for(const [k,[file]] of Object.entries(VOICE_LINES))for(const id of voiceIds(k)){
+    if(VOICE.raw[id]||VOICE.buf[id]||VOICE.bad[id]||VOICE.dec[id]==='f')continue;VOICE.dec[id]='f'; // 'f'＝取りに行っている途中
+    try{fetch(VOICE_DIR+voiceFile(file,id)).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(ab=>{delete VOICE.dec[id];VOICE.raw[id]=ab;voiceDecode()}).catch(()=>{delete VOICE.dec[id];VOICE.bad[id]=1})}catch(e){VOICE.bad[id]=1}
   }
 }
+function voicePick(k){
+  const ok=voiceIds(k).filter(id=>VOICE.buf[id]);if(!ok.length)return null;
+  const c=ok.length>1?ok.filter(id=>id!==VOICE.last[k]):ok,id=c[Math.random()*c.length|0];VOICE.last[k]=id;return VOICE.buf[id];
+}
+function voiceSetWho(who){if(!VOICE_SETS[who])return;VOICE.who=who;store.set('holdem-voice-who',who);voiceStop();voicePreload()}
 function voiceDecode(){
   const a=FX.ctx;if(!a)return;
   for(const k in VOICE.raw){
@@ -3771,9 +3787,9 @@ function voicePump(){
   while(Q.length&&now-Q[0].t>Q[0].ttl)Q.shift();
   const it=Q[0];if(!it)return;
   if(it.key){
-    const k=it.key,b=VOICE.buf[k];
+    const k=it.key,b=voicePick(k);
     if(b){const a=actx();if(a){Q.shift();voicePlay(a,b);return}}
-    else if(!VOICE.bad[k]&&FX.ctx&&now-it.t<700){setTimeout(voicePump,80);return} // まだ読み込み中：少しだけ待つ
+    else if(!VOICE.bad[voiceIds(k)[0]]&&FX.ctx&&now-it.t<700){setTimeout(voicePump,80);return} // 1つ目がまだ読み込み中：少しだけ待つ
     Q.shift();voiceSpeak(VOICE_LINES[k][1]);return; // ファイルが無い・読めない → 端末の声で
   }
   Q.shift();voiceSpeak(it.text);
@@ -3945,6 +3961,7 @@ function bindGame(V,i){
   on('#menu',()=>{APP.sheet='menu';render()});
   on('#ledger-open',()=>{APP.sheet='ledger';render()});
   on('#voice',()=>{VOICE.on=!VOICE.on;store.set('holdem-voice',VOICE.on?'1':'0');if(VOICE.on){soundUnlock();voice('raise')}else voiceStop();render()});
+  $$('[data-vwho]').forEach(b=>b.onclick=()=>{voiceSetWho(b.dataset.vwho);soundUnlock();voice('raise',{ttl:3000});render()});
   on('#vdetail',()=>{VOICE.detail=!VOICE.detail;store.set('holdem-voice-detail',VOICE.detail?'1':'0');if(VOICE.detail)voiceSay('ミナト、300');render()});
   $$('[data-vv]').forEach(b=>b.onclick=()=>{VOICE.vol=Math.min(100,Math.max(0,VOICE.vol+ +b.dataset.vv));store.set('holdem-voice-vol',String(VOICE.vol));voiceStop();voice('call');render()});
   on('#vib',()=>{VIB.on=!VIB.on;store.set('holdem-vib',VIB.on?'1':'0');if(VIB.on)buzz(30);render()});
