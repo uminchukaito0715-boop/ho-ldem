@@ -183,6 +183,23 @@ button:active:not(:disabled){transform:translateY(1px) scale(.98)}
 
 .fx-banner.allin .fxbig{-webkit-background-clip:text;}
 @keyframes bannerIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}14%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}24%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-60%) scale(1)}}
+/* カットイン：強い手札が配られたとき、自分の画面だけに出る。斜めの帯が横切り、カード2枚が左右から滑り込み、あだ名が出る */
+.cutin{position:fixed;inset:0;pointer-events:auto;display:flex;align-items:center;justify-content:center;animation:ciOut 1.8s forwards}
+.cutin .band{position:absolute;left:-25%;right:-25%;top:50%;height:min(48vh,320px);transform:translateY(-50%) skewY(-7deg);background:repeating-linear-gradient(100deg,rgba(255,255,255,0) 0 22px,rgba(255,255,255,.09) 22px 26px),linear-gradient(90deg,rgba(180,18,18,0),#c8191b 14%,#e0262a 50%,#c8191b 86%,rgba(180,18,18,0));border-block:5px solid #111;animation:ciBand .42s cubic-bezier(.2,.8,.3,1) both}
+.cutin.gold .band{background:repeating-linear-gradient(100deg,rgba(255,255,255,0) 0 22px,rgba(255,255,255,.18) 22px 26px),linear-gradient(90deg,rgba(201,149,43,0),#c9952b 14%,#f6d36a 50%,#c9952b 86%,rgba(201,149,43,0))}
+.cutin.blue .band{background:repeating-linear-gradient(100deg,rgba(255,255,255,0) 0 22px,rgba(255,255,255,.1) 22px 26px),linear-gradient(90deg,rgba(20,70,170,0),#1d4fb8 14%,#2f6fe0 50%,#1d4fb8 86%,rgba(20,70,170,0))}
+.cutin .ci{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px}
+.cutin .cards{display:flex;gap:12px;--cw:min(21vw,92px,12vh);margin-bottom:4px}
+.cutin .cards .card{box-shadow:0 6px 0 #111,0 10px 24px rgba(0,0,0,.5)}
+.cutin .cards .card:first-child{transform:rotate(-8deg);animation:ciL .5s .1s cubic-bezier(.2,.9,.3,1.25) both}
+.cutin .cards .card:last-child{transform:rotate(8deg);animation:ciR .5s .18s cubic-bezier(.2,.9,.3,1.25) both}
+.cutin .big{font-family:'Alfa Slab One','Arial Black',sans-serif;font-size:clamp(1.5rem,7.6vw,3.2rem);line-height:1;color:#fff;-webkit-text-stroke:2px #111;paint-order:stroke fill;text-shadow:0 4px 0 #111;white-space:nowrap;animation:ciTxt .45s .32s cubic-bezier(.2,.8,.3,1.3) both}
+.cutin .sub{font-weight:800;color:#fff;font-size:.95rem;text-shadow:0 2px 0 #111,0 0 6px #111;animation:ciTxt .45s .42s both}
+@keyframes ciBand{from{transform:translateY(-50%) skewY(-7deg) translateX(-115%)}to{transform:translateY(-50%) skewY(-7deg)}}
+@keyframes ciL{from{transform:translateX(-70vw) rotate(-40deg)}to{transform:rotate(-8deg)}}
+@keyframes ciR{from{transform:translateX(70vw) rotate(40deg)}to{transform:rotate(8deg)}}
+@keyframes ciTxt{from{opacity:0;transform:scale(1.9)}to{opacity:1;transform:scale(1)}}
+@keyframes ciOut{0%,84%{opacity:1}100%{opacity:0}}
 .spark{position:fixed;width:7px;height:7px;border-radius:50%;background:var(--gold-hi);box-shadow:0 0 8px 2px rgba(246,228,166,.8);pointer-events:none}
 .flash-screen{position:fixed;inset:0;animation:fl .9s ease-out forwards}
 @keyframes fl{from{opacity:1}to{opacity:0}}
@@ -1398,6 +1415,7 @@ const buzz=ms=>{try{VIB.on&&navigator.vibrate&&navigator.vibrate(ms)}catch(e){}}
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 /* 設定：振動と「画面を消さない」。どちらもこの端末に保存する */
 const VIB={on:store.get('holdem-vib')!=='0'};
+const CUTIN={on:store.get('holdem-cutin')!=='0'}; // 強い手札のカットイン（自分の画面だけ・音なし）
 const WAKE={on:store.get('holdem-wake')!=='0',lock:null};
 async function wakeSync(){
   if(!navigator.wakeLock)return;
@@ -3181,6 +3199,7 @@ function sheetHTML(V,i){
       ${VOICE.on?`<div class="plain setrow blinds"><span>声の大きさ<small>${VOICE.vol}%</small></span><span class="bbtns"><button data-vv="-20" ${VOICE.vol<=0?'disabled':''} aria-label="小さく">－</button><button data-vv="20" ${VOICE.vol>=100?'disabled':''} aria-label="大きく">＋</button></span></div>
       <div class="plain setrow blinds"><span>声</span><span class="bbtns">${Object.entries(VOICE_SETS).map(([w,s])=>`<button data-vwho="${w}" aria-pressed="${VOICE.who===w}">${s.label}</button>`).join('')}</span></div>
       <button class="plain setrow" id="vdetail" role="switch" aria-checked="${VOICE.detail}" ${SS?'':'disabled'}><span>名前・金額も読む<small>端末の声で読みます</small></span><b class="${SS&&VOICE.detail?'on':'off'}">${!SS?'この端末は非対応':VOICE.detail?'オン':'オフ'}</b></button>`:''}
+      <button class="plain setrow" id="cutin" role="switch" aria-checked="${CUTIN.on}"><span>カットイン<small>強いハンドが配られたとき（自分の画面だけ）</small></span><b class="${CUTIN.on?'on':'off'}">${CUTIN.on?'オン':'オフ'}</b></button>
       <button class="plain setrow" id="vib" role="switch" aria-checked="${VIB.on}" ${navigator.vibrate?'':'disabled'}><span>振動</span><b class="${navigator.vibrate&&VIB.on?'on':'off'}">${navigator.vibrate?(VIB.on?'オン':'オフ'):'この端末は非対応'}</b></button>
       <button class="plain setrow" id="wake" role="switch" aria-checked="${WAKE.on}" ${navigator.wakeLock?'':'disabled'}><span>画面を消さない</span><b class="${navigator.wakeLock&&WAKE.on?'on':'off'}">${navigator.wakeLock?(WAKE.on?'オン':'オフ'):'この端末は非対応'}</b></button>
       ${APP.role!=='player'&&G&&V.status!=='over'?`<div class="plain setrow blinds"><span>ブラインド<small>${G.nextBlinds?`次のハンドから ${fmt(G.nextBlinds.sb)}/${fmt(G.nextBlinds.bb)}`:`いま ${fmt(G.sb)}/${fmt(G.bb)}`}</small></span><span class="bbtns"><button data-bl="0.5" ${(G.nextBlinds||G).sb<=1?'disabled':''}>半分</button><button data-bl="2">2倍</button></span></div>`:''}
@@ -3849,6 +3868,29 @@ function fxBanner(big,sub,kind=''){
   voice(bannerVoice(big),{ttl:5000});if(sub)voiceSay(sub);
   if(kind==='mewin'){const f=document.createElement('div');f.className='flash-screen';fx.appendChild(f);setTimeout(()=>f.remove(),1000)}
 }
+/* カットイン：強い手札が自分に配られたとき、自分の画面だけに出す。帯の色は強さ順に 金＞赤＞青。
+   音や振動は出さない（同じ部屋で遊んでいると、まわりに手札がばれるため）。タップで消せる */
+const CUT_PAIRS={14:['gold','POCKET ROCKETS','ポケットエース'],13:['gold','COWBOYS','ポケットキング'],12:['red','LADIES','ポケットクイーン'],
+  11:['red','FISHHOOKS','ポケットジャック'],10:['blue','DIMES','ポケットテン'],9:['blue','POCKET NINES','ポケットナイン'],8:['blue','SNOWMEN','ポケットエイト']};
+function goodHand(cs){
+  const [a,b]=cs.map(c=>typeof c==='string'?dec(c):c).sort((x,y)=>y.r-x.r),s=a.s===b.s,st=s?'（スーテッド）':'';
+  const G3=(t,big,sub)=>({t,big,sub});
+  if(a.r===b.r){const x=CUT_PAIRS[a.r];return x?G3(...x):null}
+  if(a.r===14&&b.r===13)return G3('red','BIG SLICK','エース・キング'+st);
+  if(a.r===14&&b.r===12)return G3('blue','BIG CHICK','エース・クイーン'+st);
+  if(a.r===14&&b.r===11&&s)return G3('blue','AJAX','エース・ジャック（スーテッド）');
+  if(a.r===13&&b.r===12&&s)return G3('blue','MARRIAGE','キング・クイーン（スーテッド）');
+  return null;
+}
+function cutIn(cs,g){
+  const fx=$('#fx');if(!fx)return;
+  fx.querySelectorAll('.cutin').forEach(e=>e.remove());
+  const d=document.createElement('div');d.className='cutin '+g.t;
+  d.innerHTML=`<div class="band"></div><div class="ci"><div class="cards">${cs.map(c=>cardHTML(c,null)).join('')}</div><div class="big">${esc(g.big)}</div><div class="sub">${esc(g.sub)}</div></div>`;
+  d.addEventListener('click',e=>{e.stopPropagation();d.remove()});
+  fx.appendChild(d);setTimeout(()=>d.remove(),1800);
+  if(g.t==='gold')setTimeout(sparkle,380);
+}
 function sparkle(){
   const fx=$('#fx');if(!fx||RM.matches||!Element.prototype.animate)return;
   const pot=$('#pot');const [x,y]=pot?centerOf(pot):[innerWidth/2,innerHeight/2];
@@ -3910,6 +3952,12 @@ function fxAfterRender(V,i){
       recSave(V,i);
     }
   }
+  // カットイン：自分の2枚が初めて見えたとき（1台遊び・オンラインは配られたとき、回し遊びは本人が手札を見たとき）に1回だけ
+  if(CUTIN.on&&i>=0&&V.phase==='play'&&!(V.board||[]).length){
+    const p=V.players[i],cs=p&&!p.out&&!p.folded?myCards(V,i):null;
+    if(cs&&cs.length===2){const ck=V.handNo+'|'+p.pid;if(APP.cutKey!==ck){APP.cutKey=ck;const g=goodHand(cs);
+      if(g)setTimeout(()=>{const W=curView();if(APP.screen==='game'&&W&&W.handNo===V.handNo)cutIn(cs,g)},650)}} // 配る動きが終わってから
+  }
   if(now.mine&&!(P.mine&&P.turnId===now.turnId)){SFX.turn();buzz([30,60,30])}
   if(V.tabled&&V.phase==='play'){APP.eqSnap=APP.eqSnap||{};V.players.forEach(p=>{if(p.eq!=null)APP.eqSnap[p.pid]=Math.max(APP.eqSnap[p.pid]||0,p.eq)})}
 }
@@ -3964,6 +4012,7 @@ function bindGame(V,i){
   $$('[data-vwho]').forEach(b=>b.onclick=()=>{voiceSetWho(b.dataset.vwho);soundUnlock();voice('raise',{ttl:3000});render()});
   on('#vdetail',()=>{VOICE.detail=!VOICE.detail;store.set('holdem-voice-detail',VOICE.detail?'1':'0');if(VOICE.detail)voiceSay('ミナト、300');render()});
   $$('[data-vv]').forEach(b=>b.onclick=()=>{VOICE.vol=Math.min(100,Math.max(0,VOICE.vol+ +b.dataset.vv));store.set('holdem-voice-vol',String(VOICE.vol));voiceStop();voice('call');render()});
+  on('#cutin',()=>{CUTIN.on=!CUTIN.on;store.set('holdem-cutin',CUTIN.on?'1':'0');render();if(CUTIN.on)cutIn(['14s','14h'],goodHand(['14s','14h']))});
   on('#vib',()=>{VIB.on=!VIB.on;store.set('holdem-vib',VIB.on?'1':'0');if(VIB.on)buzz(30);render()});
   on('#wake',()=>{WAKE.on=!WAKE.on;store.set('holdem-wake',WAKE.on?'1':'0');render()});
   on('#invite',e=>shareInvite(e&&e.currentTarget));

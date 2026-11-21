@@ -1,7 +1,7 @@
 /* オフライン対応（Service Worker）の元ファイル。build.js が下の VER の部分を書きかえて 公開用/sw.js を作る。
    - アプリ本体（poker.html など）：まずネットから最新を取りにいき、4秒待ってもだめなら保存してある分を出す
    - 字体（Google Fonts）と通信部品（unpkg）：一度読んだら保存して、次からは保存分を使う */
-const V='holdem-348b38ce72';
+const V='holdem-062bcfd2e9';
 const CORE=['./','index.html','poker.html','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png'];
 const EXT=['fonts.googleapis.com','fonts.gstatic.com','unpkg.com'];
 
