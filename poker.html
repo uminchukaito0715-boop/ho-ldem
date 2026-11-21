@@ -57,6 +57,10 @@ button:active:not(:disabled){transform:translateY(1px) scale(.98)}
 .top .brand{font-family:var(--f-lux);font-weight:900;font-size:1.05rem;letter-spacing:.12em;background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-lo));-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap}
 .top .meta{flex:1;display:flex;justify-content:flex-end;color:var(--muted);font-size:.72rem;min-width:0;overflow:hidden;white-space:nowrap}
 .top .meta b{color:var(--ink);font-weight:500}
+.top .meta .tlv b{color:var(--gold-hi)}
+.top .meta .tclock{font-family:var(--f-num);color:var(--ink);min-width:3.2em;text-align:right}
+.top .meta .tclock.soon{color:#ff6b5e}
+.top .meta .tclock.paused{color:var(--muted)}
 .pass{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:.72rem;color:var(--muted);max-width:34%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none;box-shadow:0 0 6px var(--ok)}
 .dot.off{background:var(--danger);box-shadow:0 0 6px var(--danger)}
@@ -291,6 +295,9 @@ input[type=range]{flex:none;min-width:0;height:36px}
 details.rules{padding:12px 14px}
 details.rules summary{cursor:pointer}
 details.rules summary small{font-weight:400;color:var(--muted);margin-left:6px;font-family:var(--f-num)}
+details.rules .tourprev{margin-top:10px;line-height:1.7}
+details.rules .tourprev span{font-family:var(--f-num);color:var(--ink);white-space:nowrap}
+details.rules .tourprev span.ante{color:var(--gold-hi)}
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .fields label{display:flex;flex-direction:column;gap:4px;font-size:.75rem;color:var(--muted)}
 .fields input,.fields select{background:rgba(0,0,0,.3);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:16px;width:100%;min-width:0}
@@ -665,6 +672,10 @@ html[data-scr="home"] #bgx{background:var(--a-stacks) left -24px bottom -14px/cl
 .rs-row{display:grid;grid-template-columns:2em minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 10px;}
 
 .rs-row .rk{font-family:var(--f-lux);color:var(--gold);text-align:center;display:flex;justify-content:center}
+.rs-row.podium.p2 .rk{color:#d7dde6}
+.rs-row.podium.p3 .rk{color:#d08a4e}
+.rs-row.podium .num{color:var(--ink)}
+.sheet.result .rs-sub{display:block;font-size:.72rem;font-weight:500;color:var(--muted);margin-top:2px}
 .rs-row .ln{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rs-row .ln small{display:block;font-weight:400;font-size:.68rem;color:var(--muted)}
 
@@ -1191,7 +1202,7 @@ html body .ledger-btn b.plus{color:#5cf09a!important}html body .ledger-btn b.min
 .top .meta{gap:7px!important}
 @media (max-width:400px){
   .logo-mini{margin-right:2px!important}
-  .top .meta>span:nth-child(3){display:none}
+  .top .meta>span.cnt{display:none}
 }
 /* メニューのボタン：収支の数字＋「≡」の印 */
 .ico-stats.ico-menu::after{-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5h18v2.6H3zM3 10.7h18v2.6H3zM3 16.4h18V19H3z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5h18v2.6H3zM3 10.7h18v2.6H3zM3 16.4h18V19H3z'/%3E%3C/svg%3E") center/contain no-repeat}
@@ -1747,19 +1758,33 @@ function onPeersHost(peers){
 
 /* ---------- local setup ---------- */
 let setupRows=[{name:'あなた',kind:'local'},{name:'ミナト',kind:'cpu'},{name:'サクラ',kind:'cpu'},{name:'ケンジ',kind:'cpu'},{name:'ユイ',kind:'cpu'},{name:'ソウタ',kind:'cpu'}];
-let setupCfg={chips:1000,sb:10,bb:20,every:10,rebuy:true};
+let setupCfg={chips:1000,sb:10,bb:20,every:10,rebuy:true,mode:'ring',speed:'normal',lvMin:5}; // mode: ring＝リングゲーム／tour＝トーナメント
 let rulesOpen=false;
 function readCfg(){
   const num=(id,d)=>{const el=$(id);const v=el?parseInt(el.value,10):NaN;return Number.isFinite(v)&&v>0?v:d};
   if(!$('#cf-chips'))return;
-  setupCfg.chips=num('#cf-chips',1000);setupCfg.sb=num('#cf-sb',10);setupCfg.bb=Math.max(num('#cf-bb',20),setupCfg.sb);setupCfg.every=+$('#cf-every').value||0;
-  setupCfg.rebuy=$('#cf-rebuy').value==='1';
+  setupCfg.chips=num('#cf-chips',1000);
+  if($('#cf-mode'))setupCfg.mode=$('#cf-mode').value==='tour'?'tour':'ring';
+  if($('#cf-sb')){setupCfg.sb=num('#cf-sb',10);setupCfg.bb=Math.max(num('#cf-bb',20),setupCfg.sb);setupCfg.every=+$('#cf-every').value||0;setupCfg.rebuy=$('#cf-rebuy').value==='1'}
+  if($('#cf-speed')){setupCfg.speed=TOUR_SPEED[$('#cf-speed').value]?$('#cf-speed').value:'normal';setupCfg.lvMin=Math.max(1,Math.min(60,num('#cf-lvmin',5)))}
+}
+/* トーナメントのブラインド表（最初の数レベル）を文字で */
+function tourPreview(c){
+  const L=tourLevels(c.chips,c.speed);
+  return L.slice(0,8).map((l,k)=>`<span${k===TOUR_ANTE_FROM?' class="ante"':''}>${fmt(l.sb)}/${fmt(l.bb)}</span>`).join(' → ')+' …';
 }
 function rulesHTML(){
+  const tour=setupCfg.mode==='tour';
   return`<details class="rules" id="rules" ${rulesOpen?'open':''}>
-    <summary>ルール設定<small>${fmt(setupCfg.chips)}チップ · ${setupCfg.sb}/${setupCfg.bb} · リバイ${setupCfg.rebuy?'あり':'なし'}</small></summary>
+    <summary>ルール設定<small>${fmt(setupCfg.chips)}チップ · ${tour?`トーナメント（${TOUR_SPEED[setupCfg.speed]||'普通'}・${setupCfg.lvMin}分ごと）`:`${setupCfg.sb}/${setupCfg.bb} · リバイ${setupCfg.rebuy?'あり':'なし'}`}</small></summary>
     <div class="fields">
+      <label>遊び方<select id="cf-mode"><option value="ring" ${tour?'':'selected'}>リングゲーム</option><option value="tour" ${tour?'selected':''}>トーナメント</option></select></label>
       <label>初期チップ<input type="number" inputmode="numeric" id="cf-chips" min="20" step="10" value="${setupCfg.chips}"></label>
+      ${tour?`<label>ブラインドの上がり方<select id="cf-speed">${Object.entries(TOUR_SPEED).map(([v,t])=>`<option value="${v}" ${setupCfg.speed===v?'selected':''}>${t}</option>`).join('')}</select></label>
+      <label>レベルが上がる間隔（分）<input type="number" inputmode="numeric" id="cf-lvmin" min="1" max="60" value="${setupCfg.lvMin}"></label>
+    </div>
+    <p class="note tourprev">ブラインド：${tourPreview(setupCfg)}<br>レベル${TOUR_ANTE_FROM+1}からBBアンティ（BBの人がBBと同じ額をもう一度払う）。リバイ・途中参加なし。最後の1人になるまで続き、脱落した順に順位が付きます。</p>
+  </details>`:`
       <label>ブラインド倍増<select id="cf-every">
         ${[[0,'なし'],[5,'5ハンド毎'],[10,'10ハンド毎'],[20,'20ハンド毎']].map(([v,t])=>`<option value="${v}" ${setupCfg.every==v?'selected':''}>${t}</option>`).join('')}
       </select></label>
@@ -1771,7 +1796,7 @@ function rulesHTML(){
       </select></label>
     </div>
     <p class="note" style="margin-top:10px">ノーリミット・テキサスホールデム。ベットの上限は手元のチップ全部（オールイン）です。リバイありなら、チップが0になっても何回でも初期チップを買い直して次のハンドから戻れます（CPUは自動でリバイ）。</p>
-  </details>`;
+  </details>`}`;
 }
 
 /* ---------- screens: home ---------- */
@@ -1872,6 +1897,7 @@ async function joinRoom(watch){
       else if(S&&APP.err==='ホストが部屋を閉じました。')APP.err='';
       if(S&&APP.S&&S.handNo!==APP.S.handNo){APP.myCards=null;APP.myCt=null}
       if(S&&S.status==='over'&&APP.S&&APP.S.status!=='over'&&(S.ended||!S.rebuy))APP.sheet='result';
+      if(S){S._recv=Date.now();S._age=Math.max(0,Math.min(600000,S._recv-(S.updatedAt||S._recv)))} // トーナメントの時計用：受け取った時刻と、送られてからの時間
       APP.S=S;
       APP.screen=S&&S.status!=='lobby'?'game':'lobby';
       const i=S&&S.players?S.players.findIndex(p=>p.pid===APP.pid):-1;
@@ -1934,6 +1960,7 @@ function renderSetup(){
   const re=()=>{syncNames();readCfg();renderSetup()};
   $('#back').onclick=()=>{syncNames();readCfg();APP.role=null;APP.screen='home';render()};
   $('#rules').ontoggle=e=>{rulesOpen=e.target.open};
+  $$('#rules input,#rules select').forEach(el=>el.onchange=()=>{rulesOpen=true;re()}); // 遊び方を変えたら項目を入れかえる
   $('#pm').onclick=()=>{if(setupRows.length>2){setupRows.pop();buzz(8);re()}};
   $('#pp').onclick=()=>{syncNames();if(setupRows.length<MAXP){const used=new Set(setupRows.map(r=>r.name));const kind=setupRows.every(r=>r.kind==='local')?'local':'cpu';
     setupRows.push({name:kind==='cpu'?(CPU_NAMES.find(n=>!used.has(n))||`CPU${setupRows.length+1}`):`プレイヤー${setupRows.length+1}`,kind});buzz(8);re()}};
@@ -1993,7 +2020,7 @@ function renderLobby(){
   bindLobbyList();
   if(host){
     $('#rules').ontoggle=e=>{rulesOpen=e.target.open;fitLobby()};
-    $$('#rules input,#rules select').forEach(el=>el.onchange=()=>{readCfg();publish()});
+    $$('#rules input,#rules select').forEach(el=>el.onchange=()=>{readCfg();publish();rulesOpen=true;renderLobby()});
     $('#l-cpu').onclick=()=>{
       if(lobbyList().length>=MAXP)return;
       const used=new Set(lobbyList().map(p=>p.name));
@@ -2148,9 +2175,53 @@ const mkPlayer=(q,i,chips,wait=false)=>({id:i,pid:q.pid,name:q.name,kind:q.kind,
 function freshG(){return{ro:null,players:[],pending:[],cfg:{...setupCfg},dealer:-1,sb:setupCfg.sb,bb:setupCfg.bb,every:setupCfg.every,handNo:0,board:[],deck:[],street:'',cur:-1,turnId:0,currentBet:0,minRaise:setupCfg.bb,
   log:[],phase:'play',reveal:-1,showdown:false,winCards:new Set(),timer:null,say:'',sayN:0,sbI:-1,bbI:-1,sbSeat:-1,lastAggr:-1,tabled:false,potResults:[]}}
 
+/* ---------- トーナメント ----------
+   ブラインドは初期スタックから自動で決める。最初の BB は初期スタックの 1/100（100BB から始まる）。
+   上がり方は3種類。BB を次の数の列（×10のn乗）で1つずつ進める：
+     遅い 1→1.2→1.5→2→2.5→3→4→5→6→8（1レベル約1.26倍）
+     普通 1→1.5→2→3→4→5→6→8（約1.33倍）
+     早い 1→1.5→2→3→5→8（約1.47倍）
+   SB は BB の半分（割り切れないときは偶数のほう）。レベル4から BB アンティ（BB の人が BB と同じ額を、全員分の参加料として払う）。
+   レベルは決めた分数ごとに上がり、変わるのは次のハンドから。リバイ・途中参加はなし。脱落した順に順位が付く */
+const TOUR_SEQ={slow:[1,1.2,1.5,2,2.5,3,4,5,6,8],normal:[1,1.5,2,3,4,5,6,8],fast:[1,1.5,2,3,5,8]};
+const TOUR_SPEED={fast:'早い',normal:'普通',slow:'遅い'};
+const TOUR_ANTE_FROM=3; // 0 から数えたレベル番号（＝レベル4）
+const evenHalf=b=>b%2===0?b/2:(Math.floor(b/2)%2===0?Math.floor(b/2):Math.ceil(b/2));
+function tourLevels(chips,speed){
+  const seq=TOUR_SEQ[speed]||TOUR_SEQ.normal,v=i=>seq[i%seq.length]*Math.pow(10,Math.floor(i/seq.length));
+  const b0=Math.max(2,chips/100);let i=0;while(v(i+1)<=b0+1e-9)i++;
+  const out=[];let last=0;
+  for(let k=0;k<40;k++,i++){let bb=Math.round(v(i));if(bb<=last)bb=last+1;bb=Math.max(2,bb);last=bb;out.push({sb:Math.max(1,evenHalf(bb)),bb,ante:k>=TOUR_ANTE_FROM?bb:0})}
+  return out;
+}
+const tourLv=k=>tourLevels(G.cfg.chips,G.cfg.speed)[Math.max(0,Math.min(39,k))];
+/* 脱落：このハンドでチップが0になった人に順位を付ける。同じハンドで何人も飛んだら、ハンドを始めたときのチップが多かった人が上 */
+function tourBust(){
+  if(!G.tour)return;
+  const busted=G.players.filter(p=>!p.place&&p.chips<=0);if(!busted.length)return;
+  const left=G.players.filter(p=>!p.place&&p.chips>0).length;
+  busted.sort((a,b)=>(b.start||0)-(a.start||0)||seatOrder(a)-seatOrder(b));
+  busted.forEach((p,k)=>{p.place=left+k+1;p.bustHand=G.handNo;p.bustLv=G.tour.lv+1;log(`${p.name} が脱落（${p.place}位）`,'sys')});
+}
+/* 優勝が決まったら、残りの人にも順位を付ける（チップのある人が1位。退席中の人はそのあとにチップ順） */
+function tourFinish(){
+  if(!G.tour)return;
+  G.players.filter(p=>!p.place).sort((a,b)=>(eligible(b)-eligible(a))||b.chips-a.chips).forEach((p,k)=>{p.place=k+1});
+  const w=G.players.find(p=>p.place===1);if(w)log(`${w.name} が優勝しました！`,'win');
+}
+function tourPause(on){
+  const T=G&&G.tour;if(!T||T.paused===on)return;
+  if(on){T.left=Math.max(0,T.end-Date.now());T.paused=true}else{T.end=Date.now()+T.left;T.paused=false}
+  log(on?'タイマーを一時停止しました':'タイマーを再開しました','sys');
+}
+
 function startGame(list){
   G=freshG();
-  G.players=list.slice(0,MAXP).map((q,i)=>mkPlayer(q,i,setupCfg.chips));
+  if(G.cfg.mode==='tour'){
+    G.cfg.rebuy=false;G.every=0;G.cfg.lvMin=Math.max(1,Math.min(60,+G.cfg.lvMin||5));
+    const L=tourLv(0);G.sb=L.sb;G.bb=L.bb;G.ante=0;G.tour={lv:0,end:Date.now()+G.cfg.lvMin*60000,paused:false,left:0};
+  }
+  G.players=list.slice(0,MAXP).map((q,i)=>mkPlayer(q,i,G.cfg.chips));
   APP.screen='game';APP.sheet=null;
   newHand();
 }
@@ -2200,6 +2271,7 @@ function placeBlinds(){
 function newHand(){
   clearTimeout(G.timer);
   G.pending.splice(0).forEach(q=>{
+    if(G.tour&&G.handNo>0){log(`${q.name} は参加できません（トーナメントは途中参加なし。観戦はできます）`,'sys');return}
     // 同じ名前の席があるうちは新しい席を作らない（急に閉じた場合、前の接続が切れたと分かるまで時間がかかるため）。切れたらその席に戻る
     if(G.players.some(p=>p.kind==='remote'&&p.name===q.name)){G.pending.push(q);return}
     if(G.players.length<MAXP&&!G.players.some(p=>p.pid===q.pid)){
@@ -2209,13 +2281,19 @@ function newHand(){
     }
   });
   if(G.cfg.rebuy)G.players.forEach(p=>{if(p.kind==='cpu'&&p.chips<=0&&!p.kicked){p.chips=G.cfg.chips;p.rebuys++;log(`${p.name} がリバイしました`,'sys')}});
-  G.players.forEach(p=>{p.hand=[];p.bet=0;p.total=0;p.allin=false;p.acted=false;p.actedBet=null;p.best=null;p.won=0;p.shown=false;p.mucked=false});
+  G.players.forEach(p=>{p.hand=[];p.bet=0;p.total=0;p.ante=0;p.allin=false;p.acted=false;p.actedBet=null;p.best=null;p.won=0;p.shown=false;p.mucked=false;p.start=p.chips});
   if(G.players.filter(eligible).length<2){
+    tourFinish();
     G.players.forEach(p=>{p.out=true;p.folded=true});
     G.phase='over';G.cur=-1;if(!G.cfg.rebuy)APP.sheet='result';changed();return;
   }
   G.handNo++;
-  if(G.nextBlinds){G.sb=G.nextBlinds.sb;G.bb=G.nextBlinds.bb;G.nextBlinds=null;log(`ブラインドを ${fmt(G.sb)}/${fmt(G.bb)} に変更しました`,'sys')}
+  if(G.tour){
+    const T=G.tour,was=T.lv;
+    if(!T.paused)while(Date.now()>=T.end&&T.lv<39){T.lv++;T.end+=G.cfg.lvMin*60000}
+    const L=tourLv(T.lv);G.sb=L.sb;G.bb=L.bb;G.ante=L.ante;
+    if(T.lv!==was)log(`レベル${T.lv+1}：ブラインド ${fmt(G.sb)}/${fmt(G.bb)}${G.ante?`・BBアンティ ${fmt(G.ante)}`:''}`,'sys');
+  }else if(G.nextBlinds){G.sb=G.nextBlinds.sb;G.bb=G.nextBlinds.bb;G.nextBlinds=null;log(`ブラインドを ${fmt(G.sb)}/${fmt(G.bb)} に変更しました`,'sys')}
   else if(G.every&&G.handNo>1&&(G.handNo-1)%G.every===0){G.sb*=2;G.bb*=2;log(`ブラインドが ${fmt(G.sb)}/${fmt(G.bb)} に上がりました`,'sys')}
   placeBlinds();
   G.players.forEach(p=>{p.out=!(eligible(p)&&!p.waitBB);p.folded=p.out;p.lastAction=p.kicked?'退席':p.chips<=0?'脱落':p.waitBB?'BB待ち':''});
@@ -2228,7 +2306,9 @@ function newHand(){
   if(G.sbI>=0){const sP=G.players[G.sbI];const s=put(sP,G.sb);sP.lastAction=`SB ${fmt(s)}`;log(`${sP.name}: SB ${fmt(s)}`)}
   else log('SBはデッド（前のハンドのBBが抜けたため、このハンドはSBなし）','sys');
   const b=put(bbP,G.bb);bbP.lastAction=`BB ${fmt(b)}`;log(`${bbP.name}: BB ${fmt(b)}`);
-  announce(`ハンド #${G.handNo} · ブラインド ${fmt(G.sb)}/${fmt(G.bb)}`);
+  // BBアンティ：ブラインドを先に払い、残りからアンティ。アンティはベットではなく、まるごとメインポットに入る（computePots）
+  if(G.tour&&G.ante>0&&bbP.chips>0){const a=Math.min(G.ante,bbP.chips);bbP.chips-=a;bbP.total+=a;bbP.ante=a;if(bbP.chips===0)bbP.allin=true;log(`${bbP.name}: BBアンティ ${fmt(a)}`)}
+  announce(`ハンド #${G.handNo} · ブラインド ${fmt(G.sb)}/${fmt(G.bb)}${G.tour?`（レベル${G.tour.lv+1}${G.ante?`・アンティ ${fmt(G.ante)}`:''}）`:''}`);
   G.currentBet=G.bb;G.minRaise=G.bb;G.street='preflop';G.hist=[];G.aiPlan={};G.aiCache={};G.eq=null;alive.forEach(p=>aiStat(p).hands++);
   advance(G.bbI);
 }
@@ -2366,16 +2446,20 @@ function seatOrder(p){const n=G.players.length;return((p.id-G.dealer-1)%n+n)%n}
    フォールドした人が出したチップも、出した額に応じて各ポットに入る */
 function computePots(){
   const live=G.players.filter(p=>!p.out&&!p.folded);
-  const levels=[...new Set(live.filter(p=>p.allin).map(p=>p.total))].sort((a,b)=>a-b);
+  const c=p=>p.total-(p.ante||0); // アンティを除いた、ベットとして出した額
+  const levels=[...new Set(live.filter(p=>p.allin).map(c))].sort((a,b)=>a-b);
   const pots=[];let prev=0;
   for(const lv of levels){
-    let amt=0;G.players.forEach(p=>{amt+=Math.max(0,Math.min(p.total,lv)-prev)});
-    if(amt>0)pots.push({amount:amt,eligible:live.filter(p=>p.total>=lv)});
+    let amt=0;G.players.forEach(p=>{amt+=Math.max(0,Math.min(c(p),lv)-prev)});
+    if(amt>0)pots.push({amount:amt,eligible:live.filter(p=>c(p)>=lv)});
     prev=lv;
   }
-  const rest=G.players.reduce((s,p)=>s+Math.max(0,p.total-prev),0);
-  const el=live.filter(p=>p.total>prev);
+  const rest=G.players.reduce((s,p)=>s+Math.max(0,c(p)-prev),0);
+  const el=live.filter(p=>c(p)>prev);
   if(rest>0){if(el.length)pots.push({amount:rest,eligible:el});else if(pots.length)pots[pots.length-1].amount+=rest}
+  // アンティはまるごとメインポットへ
+  const antes=G.players.reduce((s,p)=>s+(p.ante||0),0);
+  if(antes>0){if(pots.length)pots[0].amount+=antes;else if(live.length)pots.push({amount:antes,eligible:live})}
   return pots;
 }
 const potLabel=(k,n)=>n===1?'ポット':k===0?'メインポット':`サイドポット${n>2?k:''}`;
@@ -2451,6 +2535,7 @@ function finishHand(){
   noteHand(ws);
   ws.forEach(p=>{p.lastAction=`+${fmt(p.won)}`;log(`${p.name} が ${fmt(p.won)} 獲得${p.best&&p.shown?`（${p.best.name}）`:''}`,'win')});
   announce(ws.map(w=>`${w.name} の勝ち`).join(' · '));
+  tourBust();
   G.phase='done';G.reveal=-1;if(APP.sheet==="raise")APP.sheet=null;buzz([20,40,20]);
   changed();
 }
@@ -2873,7 +2958,9 @@ function restoreG(S,sec){
     log:(S.log||[]).slice(),board:(S.board||[]).map(dec),deck:(sec.deck||[]).map(dec),fresh:99});
   G.players=S.players.map((q,i)=>({id:i,pid:q.pid,name:q.name,kind:q.pid===APP.pid?'local':q.kind==='cpu'?'cpu':'remote',chips:q.chips,hand:((sec.hands||{})[q.pid]||[]).map(dec),
     bet:q.bet,total:q.total,folded:q.folded,allin:q.allin,acted:!!q.acted,actedBet:q.actedBet??null,out:q.out,kicked:!!q.kicked,waitBB:!!q.waitBB,missedBB:!!q.missedBB,
-    shown:!!q.shown,mucked:!!q.mucked,lastAction:q.lastAction||'',best:q.bestName?{name:q.bestName}:null,won:q.won||0,rebuys:q.rebuys||0,lastRebuy:q.lastRebuy||0}));
+    shown:!!q.shown,mucked:!!q.mucked,lastAction:q.lastAction||'',best:q.bestName?{name:q.bestName}:null,won:q.won||0,rebuys:q.rebuys||0,lastRebuy:q.lastRebuy||0,
+    ante:q.ante||0,start:q.start||0,place:q.place||0,bustHand:q.bustHand||0,bustLv:q.bustLv||0}));
+  if(S.tour){const t=S.tour;G.tour={lv:t.lv,paused:!!t.paused,left:t.left,end:Date.now()+t.left};G.ante=t.ante||0;G.every=0}
 }
 
 /* ---------- view model (shared by local, host and player) ---------- */
@@ -2881,12 +2968,14 @@ function restoreG(S,sec){
 function eqOf(p){const e=G.eq&&G.phase==='play'&&!p.folded&&G.eq[p.id];return e?{eq:Math.round(e.w*100),eqW:e.w,eqT:e.t}:{eq:null}}
 function viewFromG(){
   const spect=APP.role==='local'&&!G.players.some(p=>p.kind==='local');
-  return{status:G.phase==='over'?'over':'playing',handNo:G.handNo,sb:G.sb,bb:G.bb,dealer:G.dealer,sbI:G.sbI,bbI:G.bbI,sbSeat:G.sbSeat,street:G.street,
+  // tour.left＝次のレベルまでの残りミリ秒（送った時点）。受け取った側は「受け取った時刻＋left」で時計を動かす
+  const T=G.tour,tour=T?{lv:T.lv,ante:G.ante||0,paused:!!T.paused,left:T.paused?T.left:Math.max(0,T.end-Date.now()),lvMin:G.cfg.lvMin,speed:G.cfg.speed,next:tourLv(T.lv+1)}:null;
+  return{status:G.phase==='over'?'over':'playing',tour,handNo:G.handNo,sb:G.sb,bb:G.bb,dealer:G.dealer,sbI:G.sbI,bbI:G.bbI,sbSeat:G.sbSeat,street:G.street,
     board:G.board.map(key),cur:G.cur,turnId:G.turnId,currentBet:G.currentBet,minRaise:G.minRaise,phase:G.phase==='cover'?'play':G.phase,
     showdown:G.showdown,tabled:G.tabled,ro:G.ro?{st:G.ro.st,hold:G.ro.hold,next:G.ro.next,k:G.ro.k,pots:G.ro.pots,rev:G.ro.rev,eqH:G.ro.eqH}:null,lastAggr:G.lastAggr,winCards:[...G.winCards],say:G.say,sayN:G.sayN,log:G.log.slice(-60),pending:G.pending.map(q=>q.name),rebuy:!!G.cfg.rebuy,rebuyChips:G.cfg.chips,
     pots:G.phase==='play'&&G.handNo>0?computePots().map(p=>({amount:p.amount,n:p.eligible.length})):[],potResults:G.potResults||[],watchers:APP.role==='host'?APP.watchers||0:0,lastHand:G.lastHand||null,ended:!!G.ended,tally:{max:(G.tally||{}).max||null,best:(G.tally||{}).best||null,st:G.aiS||{}},
     players:G.players.map(p=>({pid:p.pid,name:p.name,kind:p.kind==='cpu'?'cpu':'human',chips:p.chips,bet:p.bet,total:p.total,folded:p.folded,allin:p.allin,acted:p.acted,actedBet:p.actedBet,
-      out:p.out,kicked:p.kicked,waitBB:p.waitBB,missedBB:p.missedBB,shown:p.shown,mucked:p.mucked,lastAction:p.lastAction,won:p.won,bestName:p.best&&(p.shown||G.tabled)?p.best.name:'',rebuys:p.rebuys,lastRebuy:p.lastRebuy,...eqOf(p),
+      out:p.out,kicked:p.kicked,waitBB:p.waitBB,missedBB:p.missedBB,shown:p.shown,mucked:p.mucked,lastAction:p.lastAction,won:p.won,bestName:p.best&&(p.shown||G.tabled)?p.best.name:'',rebuys:p.rebuys,lastRebuy:p.lastRebuy,...eqOf(p),ante:p.ante||0,start:p.start||0,place:p.place||0,bustHand:p.bustHand||0,bustLv:p.bustLv||0,
       show:p.hand.length&&!p.out&&(p.shown||(!p.folded&&(G.tabled||spect)))?p.hand.map(key):(spect&&p.hand.length?p.hand.map(key):null)}))};
 }
 function curView(){return APP.role==='player'?APP.S:G?viewFromG():null}
@@ -3202,7 +3291,8 @@ function sheetHTML(V,i){
       <button class="plain setrow" id="cutin" role="switch" aria-checked="${CUTIN.on}"><span>カットイン<small>強いハンドが配られたとき（自分の画面だけ）</small></span><b class="${CUTIN.on?'on':'off'}">${CUTIN.on?'オン':'オフ'}</b></button>
       <button class="plain setrow" id="vib" role="switch" aria-checked="${VIB.on}" ${navigator.vibrate?'':'disabled'}><span>振動</span><b class="${navigator.vibrate&&VIB.on?'on':'off'}">${navigator.vibrate?(VIB.on?'オン':'オフ'):'この端末は非対応'}</b></button>
       <button class="plain setrow" id="wake" role="switch" aria-checked="${WAKE.on}" ${navigator.wakeLock?'':'disabled'}><span>画面を消さない</span><b class="${navigator.wakeLock&&WAKE.on?'on':'off'}">${navigator.wakeLock?(WAKE.on?'オン':'オフ'):'この端末は非対応'}</b></button>
-      ${APP.role!=='player'&&G&&V.status!=='over'?`<div class="plain setrow blinds"><span>ブラインド<small>${G.nextBlinds?`次のハンドから ${fmt(G.nextBlinds.sb)}/${fmt(G.nextBlinds.bb)}`:`いま ${fmt(G.sb)}/${fmt(G.bb)}`}</small></span><span class="bbtns"><button data-bl="0.5" ${(G.nextBlinds||G).sb<=1?'disabled':''}>半分</button><button data-bl="2">2倍</button></span></div>`:''}
+      ${V.tour?`<div class="plain setrow blinds"><span>トーナメント<small>レベル${V.tour.lv+1}　${fmt(V.sb)}/${fmt(V.bb)}${V.tour.ante?`・アンティ ${fmt(V.tour.ante)}`:''}<br>次：${fmt(V.tour.next.sb)}/${fmt(V.tour.next.bb)}${V.tour.next.ante?`・アンティ ${fmt(V.tour.next.ante)}`:''}（${TOUR_SPEED[V.tour.speed]||''}・${V.tour.lvMin}分ごと）</small></span>${APP.role!=='player'&&G&&G.tour&&V.status!=='over'?`<span class="bbtns"><button id="tpause">${V.tour.paused?'再開':'一時停止'}</button></span>`:''}</div>`:''}
+      ${APP.role!=='player'&&G&&!G.tour&&V.status!=='over'?`<div class="plain setrow blinds"><span>ブラインド<small>${G.nextBlinds?`次のハンドから ${fmt(G.nextBlinds.sb)}/${fmt(G.nextBlinds.bb)}`:`いま ${fmt(G.sb)}/${fmt(G.bb)}`}</small></span><span class="bbtns"><button data-bl="0.5" ${(G.nextBlinds||G).sb<=1?'disabled':''}>半分</button><button data-bl="2">2倍</button></span></div>`:''}
       ${APP.role!=='local'?`<h3>合言葉</h3><div style="text-align:center;font-weight:700;-webkit-user-select:text;user-select:text">${esc(APP.pass)}</div>`:''}
       ${APP.role!=='local'?'<button class="plain" id="invite">招待リンクを送る</button>':''}
       ${kicks.length?`<h3>参加者の管理</h3>${kicks.map(p=>`<div class="kick"><span>${esc(p.name)}${APP.present.has(p.pid)?'':'（不在）'}</span><button data-kick="${p.id}">退席させる</button></div>`).join('')}<p class="note">退席させる＝その人が戻ってくるまで配りません。2回押すと実行します。</p>`:''}
@@ -3291,11 +3381,16 @@ function reviewHTML(V,i){
 /* ---------- 結果画面 ---------- */
 function resultRows(V){
   const st=(V.tally&&V.tally.st)||{};
-  return V.players.map((p,j)=>{const s=st[j]||{};return{p,j,...ledger(V,p),vp:s.hands?Math.round((s.vp||0)/s.hands*100):0,wins:s.wins||0}}).sort((a,b)=>b.net-a.net);
+  const rows=V.players.map((p,j)=>{const s=st[j]||{};return{p,j,...ledger(V,p),vp:s.hands?Math.round((s.vp||0)/s.hands*100):0,wins:s.wins||0}});
+  // トーナメントは順位の順（まだ順位がない人は、チップの多い順にそのあと）
+  if(V.tour)return rows.sort((a,b)=>(a.p.place||99)-(b.p.place||99)||b.p.chips-a.p.chips);
+  return rows.sort((a,b)=>b.net-a.net);
 }
+const tourBustTxt=p=>p.place===1?'優勝':p.bustHand?`レベル${p.bustLv}・ハンド#${p.bustHand} で脱落`:'';
 function resultText(V){
   const T=V.tally||{},rows=resultRows(V);
-  const lines=[`ホールデム結果（${V.handNo}ハンド）`,...rows.map((r,k)=>`${k+1}位 ${r.p.name} ${signed(r.net)}`)];
+  const lines=V.tour?[`ホールデム トーナメント結果（${V.players.length}人・${V.handNo}ハンド）`,...rows.map((r,k)=>`${r.p.place||k+1}位 ${r.p.name}${r.p.place===1?' 優勝':''}`)]
+    :[`ホールデム結果（${V.handNo}ハンド）`,...rows.map((r,k)=>`${k+1}位 ${r.p.name} ${signed(r.net)}`)];
   if(T.max)lines.push(`最大ポット ${fmt(T.max.amt)}（${T.max.who}）`);
   if(T.best)lines.push(`最高の役 ${T.best.name}（${T.best.who}）`);
   return lines.join('\n');
@@ -3305,12 +3400,12 @@ function resultHTML(V,i){
   return`<div class="scrim" id="scrim"><div class="sheet result" role="dialog" aria-label="結果">
     <div class="grab"></div>
     <div class="rs-logo"></div>
-    <h3>${V.handNo}ハンドの結果</h3>
-    <div class="rs-list">${rows.map((r,k)=>`<div class="rs-row ${r.j===i?'mine':''} ${k===0?'top':''}">
-      <span class="rk">${k===0?'<i class="crown"></i>':k+1}</span>
-      <span class="ln">${esc(r.p.name)}<small>参加率 ${r.vp}% · ${r.wins}勝${r.p.rebuys?` · リバイ${r.p.rebuys}`:''}</small></span>
-      <span class="num ${r.net>0?'plus':r.net<0?'minus':''}">${signed(r.net)}</span>
-    </div>`).join('')}</div>
+    <h3>${V.tour?`トーナメント結果<small class="rs-sub">${V.players.length}人・${V.handNo}ハンド・レベル${V.tour.lv+1}まで</small>`:`${V.handNo}ハンドの結果`}</h3>
+    <div class="rs-list">${rows.map((r,k)=>{const pl=V.tour?(r.p.place||k+1):k+1;return`<div class="rs-row ${r.j===i?'mine':''} ${pl===1?'top':''} ${V.tour&&pl<=3?'podium p'+pl:''}">
+      <span class="rk">${pl===1?'<i class="crown"></i>':pl}</span>
+      <span class="ln">${esc(r.p.name)}<small>${V.tour?`${tourBustTxt(r.p)||'—'} · 参加率 ${r.vp}%`:`参加率 ${r.vp}% · ${r.wins}勝${r.p.rebuys?` · リバイ${r.p.rebuys}`:''}`}</small></span>
+      <span class="num ${V.tour?'':r.net>0?'plus':r.net<0?'minus':''}">${V.tour?`${pl}位`:signed(r.net)}</span>
+    </div>`}).join('')}</div>
     <div class="rs-awards">
       ${T.max?`<div><em>最大ポット</em><b>${fmt(T.max.amt)}</b><span>${esc(T.max.who)}${T.max.hand?` · ${esc(T.max.hand)}`:''}</span></div>`:''}
       ${T.best?`<div><em>最高の役</em><b>${esc(T.best.name)}</b><span>${esc(T.best.who)}</span></div>`:''}
@@ -3408,6 +3503,17 @@ function roStatus(V){
   if(r.st==='award'){const q=r.pots&&r.pots[r.k];if(q)return`<b>${esc(q.label)}</b> ${fmt(q.a)} → <b>${q.w.map(j=>esc((V.players[j]||{}).name)).join('・')}</b>`;return'ショーダウン'}
   return'オールイン勝負';
 }
+/* トーナメントの時計：次のレベルまでの残り。画面全体は描き直さず、0.5秒ごとに数字だけ書きかえる */
+function tourClockTxt(V){
+  APP.tourV=V;const t=V&&V.tour;if(!t)return'';
+  if(t.paused)return'停止中';
+  const ms=Math.max(0,(V._recv||Date.now())-(V._age||0)+t.left-Date.now());
+  if(ms<=0)return'次でUP';
+  const s=Math.ceil(ms/1000);return`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+setInterval(()=>{const el=document.getElementById('tclock'),V=APP.tourV;if(!el||!V||!V.tour)return;
+  const tx=tourClockTxt(V);if(el.textContent!==tx)el.textContent=tx;
+  el.classList.toggle('paused',!!V.tour.paused);el.classList.toggle('soon',!V.tour.paused&&/^0:|次/.test(tx))},500);
 const pctTxt=x=>x<=0?'0%':x<.005?'1%未満':x>.995&&x<1?'99%':Math.round(x*100)+'%';
 /* 勝率の数字とバー。金色＝単独で勝つ確率、しま模様＝引き分けの確率。いちばん勝率が高い人は緑 */
 function eqBarHTML(V,p){
@@ -3614,7 +3720,7 @@ function renderGame(){
     <div class="top">
       <span class="logo-mini" role="img" aria-label="Hold'em"></span>
       ${APP.role!=='local'?`<span class="pass"><span class="dot ${APP.connected?'':'off'}"></span>${esc(APP.pass)}</span>`:''}
-      <span class="meta"><span>#<b class="num">${V.handNo}</b></span><span>BB <b class="num">${fmt(V.bb)}</b></span><span><b class="num">${alive}</b>人</span>${V.watchers?`<span>観戦<b class="num">${V.watchers}</b></span>`:''}${APP.spectator?'<span class="tag c">観戦中</span>':''}</span>
+      <span class="meta">${V.tour?`<span class="tlv">Lv<b class="num">${V.tour.lv+1}</b></span><span class="tclock" id="tclock">${tourClockTxt(V)}</span>`:`<span>#<b class="num">${V.handNo}</b></span>`}<span>BB <b class="num">${fmt(V.bb)}</b></span><span class="cnt"><b class="num">${alive}</b>人</span>${V.watchers?`<span>観戦<b class="num">${V.watchers}</b></span>`:''}${APP.spectator?'<span class="tag c">観戦中</span>':''}</span>
       <button class="ledger-btn" id="ledger-open" aria-label="収支を見る">収支${i>=0?`<b class="num ${ledger(V,V.players[i]).net>0?'plus':ledger(V,V.players[i]).net<0?'minus':''}">${signed(ledger(V,V.players[i]).net)}</b>`:''}<i class="ico ico-stats"></i></button>
       <button class="icon-btn" id="menu" aria-label="設定（音・参加者の管理・ゲームをやめる）"><i class="ico ico-gear"></i></button>
     </div>
@@ -3906,10 +4012,17 @@ function sparkle(){
 var PREV=null; // var: render() は起動直後にも呼ばれるため巻き上げが必要
 function fxAfterRender(V,i){
   const now={handNo:V.handNo,board:V.board.length,phase:V.phase,mine:isMyTurn(V,i),turnId:V.turnId,tabled:!!V.tabled,rost:V.ro&&V.ro.st,ronext:V.ro&&V.ro.next,rok:V.ro?V.ro.k:-1,
-    acts:Object.fromEntries(V.players.map((p,j)=>[p.pid,{a:p.lastAction,j}]))};
+    acts:Object.fromEntries(V.players.map((p,j)=>[p.pid,{a:p.lastAction,j}])),
+    tlv:V.tour?V.tour.lv:-1,talive:V.tour?V.players.filter(p=>!p.place).length:0,mplace:V.tour&&i>=0&&V.players[i]?V.players[i].place||0:0};
   const P=PREV;PREV=now;
   if(!P)return;
   const pot=$('#pot');
+  // トーナメント：レベルが上がった・残り2人になった・自分が脱落した
+  if(V.tour&&P.tlv>=0&&V.status!=='over'){
+    if(now.tlv>P.tlv)fxBanner('ブラインドアップ！',`レベル${now.tlv+1}　${fmt(V.sb)}/${fmt(V.bb)}${V.tour.ante?`・アンティ ${fmt(V.tour.ante)}`:''}`,'pota');
+    else if(now.talive===2&&P.talive>2)setTimeout(()=>fxBanner('ヘッズアップ！','残り2人','pota'),2600);
+    if(now.mplace>1&&!P.mplace){const pl=now.mplace;setTimeout(()=>fxBanner(`${pl}位`,'脱落しました（観戦はそのまま続けられます）',''),3000)}
+  }
   if(V.handNo!==P.handNo){
     if(V.handNo>0){SFX.shuffle();const n=Math.min(V.players.filter(p=>!p.out).length*2,10);for(let k=0;k<n;k++)SFX.card(.12+k*.07)}
   }else{
@@ -4012,6 +4125,7 @@ function bindGame(V,i){
   $$('[data-vwho]').forEach(b=>b.onclick=()=>{voiceSetWho(b.dataset.vwho);soundUnlock();voice('raise',{ttl:3000});render()});
   on('#vdetail',()=>{VOICE.detail=!VOICE.detail;store.set('holdem-voice-detail',VOICE.detail?'1':'0');if(VOICE.detail)voiceSay('ミナト、300');render()});
   $$('[data-vv]').forEach(b=>b.onclick=()=>{VOICE.vol=Math.min(100,Math.max(0,VOICE.vol+ +b.dataset.vv));store.set('holdem-voice-vol',String(VOICE.vol));voiceStop();voice('call');render()});
+  on('#tpause',()=>{if(!G||!G.tour)return;tourPause(!G.tour.paused);buzz(8);changed()});
   on('#cutin',()=>{CUTIN.on=!CUTIN.on;store.set('holdem-cutin',CUTIN.on?'1':'0');render();if(CUTIN.on)cutIn(['14s','14h'],goodHand(['14s','14h']))});
   on('#vib',()=>{VIB.on=!VIB.on;store.set('holdem-vib',VIB.on?'1':'0');if(VIB.on)buzz(30);render()});
   on('#wake',()=>{WAKE.on=!WAKE.on;store.set('holdem-wake',WAKE.on?'1':'0');render()});
